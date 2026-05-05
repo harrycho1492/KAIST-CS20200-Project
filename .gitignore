@@ -2,7 +2,10 @@
 [Rr]elease/
 [Bb]in/
 [Oo]bj/
+[Pp]roposal/
 
 .vscode
 .vs/
 .DS_Store
+
+spec.pdf

@@ -1,9 +1,23 @@
 ﻿/// KAIST CS.20200 Term Project
+module TermProject.GameEntry
+
+open System
+
+let rec gameInit () =
+  printfn "Select an option:"
+  printfn "[1] Play as dealer / East"
+  printfn "[2] Play as second / South"
+  printfn "[3] Play as third  / West"
+  printfn "[4] Exit"
+  Console.Write "> "
+  match Console.ReadLine () with
+  | "1" | "01" -> Mahjong(1).Run(); gameInit ()
+  | "2" | "02" -> Mahjong(2).Run(); gameInit ()
+  | "3" | "03" -> Mahjong(3).Run(); gameInit ()
+  | "4" | "04" -> 0
+  | _ -> printfn "\n[*] Invalid option.\n"; gameInit ()
 
 [<EntryPoint>]
 let main _args =
   printfn "Project Title: CLI 3-person Japanese Mahjong"
-  printfn "There is nothing here as of now,"
-  printfn "but more content will be added in due time..."
-  // TBA
-  0
+  gameInit ()
