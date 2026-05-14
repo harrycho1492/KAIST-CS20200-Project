@@ -99,6 +99,107 @@ type WinningHands () =
             )
         )
       ) else ( [ (-1, -1) ] )
+  let rec tryBuildSequences tileList =
+    match List.length tileList with
+    | x when not (x % 3 = 0) -> [ -1 ]
+    | 0 -> failwith "Fatal error"
+    | 3 ->
+      let currTile = tileList.Head / 4
+      if (List.contains currTile (List.append [ 2..8 ] [ 11..17 ])) then (
+        if (
+          (currTile + 1 = tileList.Tail.Head / 4) && (currTile + 2 = tileList.Tail.Tail.Head / 4)
+        ) then ( [ tileList.Head / 4 ] ) else ( [ -1 ] )
+      ) else ( [ -1 ] )
+    | x ->
+      let currTile = tileList.Head / 4
+      if (List.contains currTile (List.append [ 2..8 ] [ 11..17 ])) then (
+        if (
+          (List.contains (currTile + 1) tileList.Tail) && (List.contains (currTile + 2) tileList.Tail)
+        ) then (
+          let rm1List = List.removeAt (List.findIndex (fun x -> x = currTile + 1) tileList.Tail) tileList.Tail
+          let rm2List = List.removeAt (List.findIndex (fun x -> x = currTile + 2) rm1List) rm1List
+          let nextTry = tryBuildSequences rm2List
+          if (nextTry.Head = -1) then ( [ -1 ] ) else (
+            List.append [ currTile ] nextTry
+          )
+        ) else ( [ -1 ] )
+      ) else ( [ -1 ] )
+  let rec tryBuildSequencesAndOne tileList =
+    match List.length tileList with
+    | x when not (x % 3 = 1) -> [ ]
+    | 1 -> [ [ (false, tileList.Head / 4) ] ]
+    | x ->
+      let currTile = tileList.Head / 4
+      // Case 1: This tile is body
+      let try1 =
+        if (
+          (
+            List.contains currTile (List.append [ 2..8 ] [ 11..17 ])
+          ) && (
+            List.contains (currTile + 1) tileList.Tail
+          ) && (
+            List.contains (currTile + 2) tileList.Tail
+          )
+        ) then (
+          let rm1List = List.removeAt (List.findIndex (fun x -> x = currTile + 1) tileList.Tail) tileList.Tail
+          let rm2List = List.removeAt (List.findIndex (fun x -> x = currTile + 2) rm1List) rm1List
+          let nextTry = tryBuildSequencesAndOne tileList
+          if (List.length nextTry = 0) then ( [ ] ) else (
+            List.map (fun x -> List.append [ (true, currTile) ] x) nextTry
+          )
+        ) else ( [ ] )
+      // Case 2: This tile is orphan
+      let try2 = tryBuildSequences tileList.Tail
+      if (try2.Head = -1) then (try1) else (
+        List.append try1 [ (List.append [ (false, currTile) ] (List.map (fun x -> (true, x)) try2)) ]
+      )
+  let rec tryBuildSequencesAndPair tileList =
+    match List.length tileList with
+    | x when not (x % 3 = 2) -> [ ]
+    | 2 ->
+      if (tileList.Head / 4 = tileList.Tail.Head / 4)
+      then ( [ [ (false, tileList.Head / 4) ] ] ) else ( [ ] )
+    | x ->
+      let currTile = tileList.Head / 4
+      // Case 1: This tile is body
+      let try1 =
+        if (
+          (
+            List.contains currTile (List.append [ 2..8 ] [ 11..17 ])
+          ) && (
+            List.contains (currTile + 1) tileList.Tail
+          ) && (
+            List.contains (currTile + 2) tileList.Tail
+          )
+        ) then (
+          let rm1List = List.removeAt (List.findIndex (fun x -> x = currTile + 1) tileList.Tail) tileList.Tail
+          let rm2List = List.removeAt (List.findIndex (fun x -> x = currTile + 2) rm1List) rm1List
+          let nextTry = tryBuildSequencesAndPair tileList
+          if (List.length nextTry = 0) then ( [ ] ) else (
+            List.map (fun x -> List.append [ (true, currTile) ] x) nextTry
+          )
+        ) else ( [ ] )
+      // Case 2: This tile is pair
+      let try2 =
+        if (currTile = tileList.Tail.Head / 4) then (tryBuildSequences tileList.Tail.Tail) else ( [ -1 ] )
+      if (try2.Head = -1) then (try1) else (
+        List.append try1 [ (List.append [ (false, currTile) ] (List.map (fun x -> (true, x)) try2)) ]
+      )
+  let rec tryBuildBodiesAndPair tileList =
+    [ ] // TBA: Rebuild this section
+
+    // Failed attempt:
+    (*
+    let try1 = tryBuildTripletsAndPairs tileList 1
+    let try2 = tryBuildSequencesAndPair tileList
+    if (try1.Head = (-1, -1)) then (
+      List.map (fun x -> List.map (fun (b, t) -> (b, t, 3)) x) try2
+    ) else (
+      List.append
+        [ (List.map (fun (t, n) -> (false, t, n)) try1) ]
+        (List.map (fun x -> List.map (fun (b, t) -> (b, t, 3)) x) try2)
+    )
+    *)
   let rec tryBuildHeads tileList =
     match List.length tileList with
     | x when not (x % 2 = 0) -> [ -1 ]
@@ -169,7 +270,7 @@ type WinningHands () =
       "Big Four Winds",
       (
         fun handTileList meldList finalTile isDrawn ->
-          if (List.exists (fun (x, _) -> not (List.contains (x / 4) windTiles)) meldList) then (false) else (
+          if (List.exists (fun (x, _) -> not (List.contains x windTiles)) meldList) then (false) else (
             let req =
               List.filter (fun x -> not (List.contains x (List.map (fun (x, _) -> x) meldList))) windTiles
             if (List.length req = 0) then (
@@ -301,7 +402,55 @@ type WinningHands () =
       0, 1,
       [ ]
     );
-    // TBA - All Green, Big Three Dragons, Small Four Winds
+    WinningHand (
+      "All Green",
+      (
+        fun handTileList meldList finalTile isDrawn ->
+          let greenTiles = [ 12; 13; 14; 16; 18; 25 ]
+          if (List.exists (fun (x, _) -> not (List.contains x greenTiles)) meldList) then (false) else (
+            let allTileList = List.sort (List.append handTileList [ finalTile ])
+            let temp = tryBuildBodiesAndPair allTileList
+            (
+              not (List.exists (fun x -> not (List.contains x greenTiles)) allTileList)
+            ) && (
+              List.length temp > 0
+            )
+          )
+      ),
+      1, 1,
+      [ ]
+    );
+    WinningHand (
+      "Big Three Dragons",
+      (
+        fun handTileList meldList finalTile isDrawn ->
+          if (List.exists (fun (x, _) -> not (List.contains x dragonTiles)) meldList) then (false) else (
+            let req =
+              List.filter (fun x -> not (List.contains x (List.map (fun (x, _) -> x) meldList))) dragonTiles
+            let allTileList = List.sort (List.append handTileList [ finalTile ])
+            let temp = tryBuildBodiesAndPair allTileList
+            (
+              List.length temp > 0
+            ) && (
+              (
+                List.length req = 0
+              ) || (
+                List.exists
+                  (
+                    fun x ->
+                      List.forall
+                        (fun y -> List.exists (fun (b, t, n) -> (b = false) && (t = y) && (n = 3)) x)
+                        req
+                  )
+                  temp
+              )
+            )
+          )
+      ),
+      1, 1,
+      [ ]
+    );
+    // TBA - Small Four Winds
     WinningHand (
       "All Terminals",
       (

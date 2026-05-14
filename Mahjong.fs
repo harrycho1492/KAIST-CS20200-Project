@@ -24,12 +24,18 @@ type Mahjong (userPos) =
       ([| 4; 8; 40; 44; 76; 80; 84; 88; 92; 96; 100; 104; 105 |], [ ], 0, true, false)
     testWinningHand "Nine Gates"
       ([| 44; 45; 48; 52; 56; 60; 64; 68; 72; 76; 77; 78; 79 |], [ ], 47, true, false)
+    testWinningHand "All Green"
+      ([| 48; 49; 52; 53; 56; 57; 64; 65; 66; 100 |], [ (18, 34) ], 101, false, true)
+    testWinningHand "Big Three Dragons"
+      ([| 0; 1; 8; 13; 18; 104; 105 |], [ (24, 44); (25, 47) ], 106, false, true)
     testWinningHand "All Terminals"
       ([| 0; 1; 2; 4; 5; 6; 8; 9; 10; 40; 41; 42; 44 |], [ ], 45, true, false)
     testWinningHand "All Honors"
       ([| 80; 81; 84; 85; 88; 89; 92; 93; 96; 97; 100; 101; 104 |], [ ], 105, true, false)
     testWinningHand "Four Concealed Triplets"
       ([| 80; 81; 82; 84; 85; 86; 88; 89; 90; 92; 93; 96; 97 |], [ ], 94, true, false)
+    testWinningHand "Four Quads"
+      ([| 96 |], [ (20, 21); (21, 34); (22, 44); (23, 47) ], 97, false, true)
     testWinningHand "Seven Pairs"
       ([| 12; 13; 16; 17; 20; 21; 24; 28; 29; 32; 33; 36; 37 |], [ ], 25, false, false)
     testWinningHand "All Terminals and Honors"
