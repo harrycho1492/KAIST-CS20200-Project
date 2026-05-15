@@ -10,7 +10,7 @@ type Mahjong (userPos) =
   member __.RunDebug () =
     // WinningHand debugging
     let testWinningHand handName argIn =
-      printf "Check %s: " handName
+      printfn "Check %s:" handName
       if (hands.IsThisHand handName argIn) then (printfn "OK\n") else (printfn "Error\n")
     testWinningHand "Thirteen Orphans | 13-tile Wait"
       ([| 0; 4; 8; 40; 44; 76; 80; 84; 88; 92; 96; 100; 104 |], [ ], 1, true, false)
