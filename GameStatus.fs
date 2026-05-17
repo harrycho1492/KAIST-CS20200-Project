@@ -23,29 +23,37 @@ type GameStatus () =
   // 301 ~ 354 : discarded in front of player 1, numbered in order
   let tiles = Array.create 108 0
   // for bonus tile display &  four quads abort
-  let numQuads = 0
+  let mutable numQuads = 0
+  // for nine different terminal and honor tiles abort
+  // and "Blessing of Heaven" & "Blessing of Earth" limit hands
+  let mutable firstRound = 1
 
   // for tile draws
   let rand = System.Random ()
-  let rec drawTile () =
-    let idx = rand.Next (0, 108)
-    if (not (tiles[idx] = 0)) then (drawTile ()) else (idx)
+  let rec drawTile fromUnused =
+    if (fromUnused) then (
+      Array.findIndex (fun x -> x = -1) tiles
+    ) else (
+      let candidates =
+        Array.map (fun (x, _) -> x) (Array.filter (fun (_, y) -> y = 0) (Array.indexed tiles))
+      candidates[rand.Next (0, Array.length candidates)]
+    )
   
   // internally used functions
   let assertVaildPlayer n =
     if ((n > 3) || (n < 1)) then (failwith "Fatal error") else ()
   let tileNotation idx =
     match idx / 4 with
-    | 0  -> "1m"
-    | 1  -> "9m"
-    | 2  -> "1p"
-    | 3  -> "2p"
-    | 4  -> "3p"
-    | 5  -> "4p"
-    | 6  -> if (idx % 4 = 0) then ("5P") else ("5p") // Red tile bonus
-    | 7  -> "6p"
-    | 8  -> "7p"
-    | 9  -> "8p"
+    |  0 -> "1m"
+    |  1 -> "9m"
+    |  2 -> "1p"
+    |  3 -> "2p"
+    |  4 -> "3p"
+    |  5 -> "4p"
+    |  6 -> if (idx % 4 = 0) then ("5P") else ("5p") // Red tile bonus
+    |  7 -> "6p"
+    |  8 -> "7p"
+    |  9 -> "8p"
     | 10 -> "9p"
     | 11 -> "1s"
     | 12 -> "2s"
@@ -100,7 +108,23 @@ type GameStatus () =
       )
     ) else ( [| |] )
   let getCalledTriplets n =
-    [| |] // TBA
+    let (na, nb) =
+      match n with
+      | 1 -> (54, 57)
+      | 2 -> (52, 58)
+      | 3 -> (53, 56)
+      | _ -> failwith "Fatal error"
+    if ((Array.contains na tiles) || (Array.contains nb tiles)) then (
+      let ta = Array.map (fun (x, _) -> x) (Array.filter (fun (_, y) -> y = na) (Array.indexed tiles))
+      let tb = Array.map (fun (x, _) -> x) (Array.filter (fun (_, y) -> y = nb) (Array.indexed tiles))
+      if ((not ((Array.length ta) % 3 = 0)) || (not ((Array.length ta) % 3 = 0))) then (
+        failwith "Fatal error"
+      ) else (
+        Array.append
+          (Array.map (fun (_, y) -> (y / 4, na)) (Array.filter (fun (x, _) -> x % 3 = 0) (Array.indexed ta)))
+          (Array.map (fun (_, y) -> (y / 4, nb)) (Array.filter (fun (x, _) -> x % 3 = 0) (Array.indexed tb)))
+      )
+    ) else ( [| |] )
   let getMeldTiles n =
     Array.toList (
       Array.append
@@ -136,15 +160,13 @@ type GameStatus () =
     | (x, -1) when x > 1 ->
       printfn "%s" (List.fold (fun x y -> x + " | " + y) ht.Head ht.Tail)
       if (index) then (
-        for i in 1..x do
-          printf "%2d   " i
+        for i in 1..x do printf "%2d   " i
         printfn "\n"
       ) else (printfn "")
     | (x,  y) ->
       printfn "%s | %s" (List.fold (fun x y -> x + " | " + y) ht.Head ht.Tail) (tileNotation y)
       if (index) then (
-        for i in 1..x do
-          printf "%2d   " i
+        for i in 1..x do printf "%2d   " i
         printfn "14\n"
       ) else (printfn "")
   let displayMeldTiles n =
@@ -153,45 +175,108 @@ type GameStatus () =
     match List.length mt with
     | 0 -> printfn "None\n"
     | _ ->
+      printfn ""
       (List.map (
         fun (x, y) ->
           match y with
-          | 21 | 22 | 23 -> printfn "Closed quad of %s" (tileNotation x)
-          | 32 | 33      -> printfn "Open quad of %s, loaned from player 1" (tileNotation x)
-          | 34 | 36      -> printfn "Open quad of %s, loaned from player 2" (tileNotation x)
-          | 37 | 38      -> printfn "Open quad of %s, loaned from player 3" (tileNotation x)
-          | 42 | 43      -> printfn "Added quad of %s, loaned from player 1" (tileNotation x)
-          | 44 | 46      -> printfn "Added quad of %s, loaned from player 2" (tileNotation x)
-          | 47 | 48      -> printfn "Added quad of %s, loaned from player 3" (tileNotation x)
-          | 52 | 53      -> printfn "Called triplet of %s, loaned from player 1" (tileNotation x)
-          | 54 | 56      -> printfn "Called triplet of %s, loaned from player 1" (tileNotation x)
-          | 57 | 58      -> printfn "Called triplet of %s, loaned from player 1" (tileNotation x)
+          | 21 | 22 | 23 -> printfn "Closed quad of %s" (tileNotation (4 * x + 3))
+          | 32 | 33      -> printfn "Open quad of %s, loaned from player 1" (tileNotation (4 * x + 3))
+          | 34 | 36      -> printfn "Open quad of %s, loaned from player 2" (tileNotation (4 * x + 3))
+          | 37 | 38      -> printfn "Open quad of %s, loaned from player 3" (tileNotation (4 * x + 3))
+          | 42 | 43      -> printfn "Added quad of %s, loaned from player 1" (tileNotation (4 * x + 3))
+          | 44 | 46      -> printfn "Added quad of %s, loaned from player 2" (tileNotation (4 * x + 3))
+          | 47 | 48      -> printfn "Added quad of %s, loaned from player 3" (tileNotation (4 * x + 3))
+          | 52 | 53      -> printfn "Called triplet of %s, loaned from player 1" (tileNotation (4 * x + 3))
+          | 54 | 56      -> printfn "Called triplet of %s, loaned from player 2" (tileNotation (4 * x + 3))
+          | 57 | 58      -> printfn "Called triplet of %s, loaned from player 3" (tileNotation (4 * x + 3))
           | _ -> failwith "Fatal error"
       ) mt) |> ignore; printfn ""
   let displayDiscardedTiles n =
     assertVaildPlayer n
     match discardedTiles n with
     | 0            -> printfn "None\n"
-    | 1            -> printfn "%s\n" (tileNotation (Array.findIndex (fun x -> x = (n * 100 + 1)) tiles))
+    | 1            -> printfn "\n%s\n" (tileNotation (Array.findIndex (fun x -> x = (n * 100 + 1)) tiles))
     | x when x > 1 ->
-      let dt = Array.toList (Array.map (fun y -> tileNotation (Array.findIndex (fun z -> z = (n * 100 + y)) tiles)) [| 1..x |])
-      printfn "%s\n" (List.fold (fun y z -> y + " | " + z) dt.Head dt.Tail)
+      let dt =
+        Array.toList
+          (Array.map (fun y -> tileNotation (Array.findIndex (fun z -> z = (n * 100 + y)) tiles)) [| 1..x |])
+      printfn "\n%s\n" (List.fold (fun y z -> y + " | " + z) dt.Head dt.Tail)
     | _            -> failwith "Fatal error"
 
   member __.Init () =
     // Getting unused tiles
-    for i in 1..4 do
-      tiles[drawTile ()] <- -1
+    for i in 1..4  do tiles[drawTile false] <- -i
     // Getting bonus tiles
-    for i in 1..10 do
-      tiles[drawTile ()] <- i
+    for i in 1..10 do tiles[drawTile false] <- i
     // Getting initial hand tiles
-    for i in 1..39 do
-      tiles[drawTile ()] <- 11 + ((i - 1) % 3)
+    for i in 1..39 do tiles[drawTile false] <- 11 + ((i - 1) % 3)
     ()
+  
+  member __.CheckFirstRound () = firstRound
+
+  member __.IncrementFirstRound () =
+    firstRound <- firstRound + 1; ()
+
+  member __.EndFirstRound () =
+    firstRound <- 0; ()
   
   member __.CanDrawTile () =
     Array.exists (fun x -> x = 0) tiles
+
+  member __.NumQuads () = numQuads
+
+  member __.IncrementQuad () = numQuads <- numQuads + 1; ()
+  
+  member __.AbortBy4Quads () =
+    (numQuads = 4) && (not (
+      List.exists (fun x ->
+        Array.length (
+          Array.append (getClosedQuads x)
+            (Array.append (getOpenOrAddedQuads false x) (getOpenOrAddedQuads true x))
+        ) = 4
+      ) [ 1..3 ]
+    ))
+  
+  member __.AbortByNineTerminalsAndHonors player =
+    assertVaildPlayer player
+    if (getDrawnTile player = -1) then (false) else (
+      let allTileList = Array.append (getHandTiles player) [| (getDrawnTile player) |]
+      List.fold (fun x y ->
+        if (Array.exists (fun z -> z / 4 = y) allTileList) then (x + 1) else (x)
+      ) 0 [ 0; 1; 2; 10; 11; 19; 20; 21; 22; 23; 24; 25; 26 ] > 8
+    )
+  
+  member __.IsPenalty idx player =
+    assertVaildPlayer player
+    match discardedTiles player with
+    | 0            -> false
+    | 1            -> (idx / 4) = ((Array.findIndex (fun x -> x = (player * 100 + 1)) tiles) / 4)
+    | x when x > 1 ->
+      let dt = Array.map (fun y -> Array.findIndex (fun z -> z = (player * 100 + y)) tiles) [| 1..x |]
+      Array.exists (fun x -> x / 4 = idx / 4) dt
+    | _            -> failwith "Fatal error"
+  
+  member __.CallMeld isQuad idx fromWho player =
+    assertVaildPlayer player
+    let m = idx / 4
+    let temp =
+      Array.fold (fun x y -> if (y = 10 + player) then (x + 1) else (x)) 0 (tiles[ (4 * m)..(4 * m + 3) ])
+    if (isQuad) then (
+      // Call for open quad
+      if (temp = 3) then (
+        for i in (4 * m)..(4 * m + 3) do
+          tiles[i] <- 27 + (fromWho * 3) + player
+        tileNotation idx
+        // incrementing numQuads is done later separately
+      ) else (failwith "Invalid action")
+    ) else (
+      // Call for called triplet
+      if (temp = 2) then (
+        for i in (4 * m)..(4 * m + 3) do
+          if ((i = idx) || (tiles[i] = 10 + player)) then (tiles[i] <- 47 + (fromWho * 3) + player)
+        tileNotation idx
+      ) else (failwith "Invalid action")
+    )
   
   member __.TryMakeMeld player =
     assertVaildPlayer player
@@ -201,36 +286,78 @@ type GameStatus () =
           (fun (x, _) -> x)
           (Array.filter (fun (_, y) -> ((y = (10 + player)) || (y = (13 + player)))) (Array.indexed tiles))
       )
+    let calledTriplets = getCalledTriplets player
     let rec tryHelp prev cnt list =
       match list with
       | hd :: tl ->
         if (hd / 4 = prev) then (
           if (cnt = 3) then (
+            // Closed quad possible
             match tl with
             | nhd :: ntl ->
-              List.append [prev] (tryHelp nhd 1 ntl)
-            | _ -> [prev]
+              List.append [ (false, prev, tileNotation hd) ] (tryHelp nhd 1 ntl)
+            | _ -> [ (false, prev, tileNotation hd) ]
           ) else (
             tryHelp prev (cnt + 1) tl
           )
         ) else (
-          tryHelp (hd / 4) 1 tl
+          // Check for added quad
+          if (Array.exists (fun (t, _) -> t = hd / 4) calledTriplets) then (
+            List.append [ (true, hd, tileNotation hd) ] (tryHelp (hd / 4) 1 tl)
+          ) else (tryHelp (hd / 4) 1 tl)
         )
       | _ -> []
-    List.toArray (tryHelp (allTilesList.Head / 4) 1 allTilesList.Tail)
-
-  member __.DrawTile player =
-    assertVaildPlayer player
-    let drawnTile = drawTile ()
-    tiles[drawnTile] <- 13 + player
-    tileNotation drawnTile
+    tryHelp (allTilesList.Head / 4) 1 allTilesList.Tail
   
-  member __.MakeMeld idx player =
+  member __.MakeMeld optionInfo player =
     assertVaildPlayer player
-    if (Array.exists (fun x -> not (x = 10 + player)) (tiles[ (4 * idx)..(4 * idx + 3) ])) then (failwith "Invalid meld")
-    for i in (4 * idx)..(4 * idx + 3) do
-      tiles[i] <- 20 + player
-    tileNotation (4 * idx)
+    let (isAddedQuad, idx, _) = optionInfo
+    if (isAddedQuad) then (
+      // idx = 0 ~ 107
+      let m = idx / 4
+      let (na, nb) =
+        match player with
+        | 1 -> (54, 57)
+        | 2 -> (52, 58)
+        | 3 -> (53, 56)
+        | _ -> failwith "Fatal error"
+      let nx =
+        let temp1 =
+          Array.fold (fun x y -> if (y = na) then (x + 1) else (x)) 0 (tiles[ (4 * m)..(4 * m + 3) ])
+        let temp2 =
+          Array.fold (fun x y -> if (y = nb) then (x + 1) else (x)) 0 (tiles[ (4 * m)..(4 * m + 3) ])
+        match (temp1, temp2) with
+        | (3, _) -> na
+        | (_, 3) -> nb
+        | (_, _) -> failwith "Invalid action"
+      for i in (4 * m)..(4 * m + 3) do tiles[i] <- (nx - 10)
+      (idx, tileNotation idx)   // incrementing numQuads is done later separately
+    ) else (
+      // idx = 0 ~ 26
+      if (
+        Array.exists
+          (fun x -> not ((x = 10 + player) || (x = 13 + player))) (tiles[ (4 * idx)..(4 * idx + 3) ])
+      ) then (failwith "Invalid action") else (
+        for i in (4 * idx)..(4 * idx + 3) do tiles[i] <- 20 + player
+        ((4 * idx + 3), tileNotation (4 * idx + 3))   // incrementing numQuads is done later separately
+      )
+    )
+
+  member __.DrawTile fromUnused player =
+    assertVaildPlayer player
+    if (fromUnused) then (
+      let drawnTile = drawTile true
+      tiles[drawnTile] <- 13 + player
+      for i in 2..4 do
+        tiles[Array.findIndex (fun x -> x = -i) tiles] <- (1 - i)
+      let refillTile = drawTile false
+      tiles[refillTile] <- -4
+      tileNotation drawnTile
+    ) else (
+      let drawnTile = drawTile false
+      tiles[drawnTile] <- 13 + player
+      tileNotation drawnTile
+    )
   
   member __.SetTile player =
     assertVaildPlayer player
@@ -239,47 +366,77 @@ type GameStatus () =
     )
     ()
   
+  member __.PutAside4zTile player =
+    assertVaildPlayer player
+    if (Array.exists (fun x -> (x = 10 + player) || (x = 13 + player)) tiles[ 92..95 ]) then (
+      let idx = 92 + (Array.findIndex (fun x -> (x = 10 + player) || (x = 13 + player)) tiles[ 92..95 ])
+      tiles[idx] <- 16 + player; idx
+    ) else (failwith "Invalid action")
+  
   member __.DiscardTile idx player =
     assertVaildPlayer player
-    if (not ((tiles[idx] = 10 + player) || (tiles[idx] = 13 + player))) then (failwith "Invalid discard")
+    if (not ((tiles[idx] = 10 + player) || (tiles[idx] = 13 + player))) then (failwith "Invalid action")
     tiles[idx] <- player * 100 + (discardedTiles player) + 1
-    tileNotation idx
+    (idx, tileNotation idx)
 
   member __.ConstructHand viewPoint =
     (
       getHandTiles viewPoint,
       getMeldTiles viewPoint,
-      getDrawnTile viewPoint,
-      true, // isDrawn
-      false // hasCalledOpen
+      getDrawnTile viewPoint
+    )
+  
+  member __.BonusTiles () =
+    (
+      List.map (fun x -> Array.findIndex (fun y -> y = x) tiles) [ 1..(1 + numQuads) ],
+      List.map (fun x -> Array.findIndex (fun y -> y = x) tiles) [ 6..(6 + numQuads) ]
     )
 
   member __.Display viewPoint =
+    printfn "===================================================================\n"
     match viewPoint with
-    | 0 -> // All-seeing observer perspective
+    | 0 -> // All-seeing observer perspective\
+      printfn "Unused tiles:"
+      let unusedTiles = List.map (fun x -> Array.findIndex (fun y -> y = x) tiles) [ -1; -2; -3; -4 ]
+      //   Array.toList
+      //     (Array.map (fun (x, _) -> x) (Array.filter (fun (_, y) -> y = -1) (Array.indexed tiles)))
+      if (List.length unusedTiles > 0) then (
+        printfn "%s\n" (
+          List.fold (fun x y -> x + " | " + (tileNotation y)) (tileNotation unusedTiles.Head) unusedTiles.Tail
+        )
+      ) else (printfn "None\n")
       displayBonusTiles 0
       for i in 1..3 do
-        printfn "In player %d's hand:" i
+        printfn "[Player %d]\n" i
+        printfn "In hand:"
         displayHandTiles i false
-        printfn "Melds made by player %d:" i
+        printf "Melds made: "
         displayMeldTiles i
-        printfn "Discarded by player %d:" i
+        printfn "North (4z) tiles put aside: %d\n"
+          (Array.fold (fun x y -> if (y = 16 + i) then (x + 1) else (x)) 0 tiles[ 92..95 ])
+        printf "Discarded:  "
         displayDiscardedTiles i
       // TBA - How to display open tiles
       printfn "%d tiles remaining in the stack\n" (remainingTiles ())
     | 1 | 2 | 3 ->
       displayBonusTiles (1 + numQuads)
+      printfn "[You]\n"
       printfn "In your hand:"
       displayHandTiles viewPoint true
-      printfn "Melds made by you:"
+      printf "Melds made: "
       displayMeldTiles viewPoint
-      printfn "Discarded by you:"
+      printfn "North (4z) tiles put aside: %d\n"
+        (Array.fold (fun x y -> if (y = 16 + viewPoint) then (x + 1) else (x)) 0 tiles[ 92..95 ])
+      printf "Discarded:  "
       displayDiscardedTiles viewPoint
       for i in 1..3 do
         if (not (i = viewPoint)) then (
-          printfn "Melds made by player %d:" i
+          printfn "[Player %d]\n" i
+          printf "Melds made: "
           displayMeldTiles i
-          printfn "Discarded by player %d:" i
+          printfn "North (4z) tiles put aside: %d\n"
+            (Array.fold (fun x y -> if (y = 16 + i) then (x + 1) else (x)) 0 tiles[ 92..95 ])
+          printf "Discarded:  "
           displayDiscardedTiles i
         )
       printfn "%d tiles remaining in the stack\n" (remainingTiles ())
