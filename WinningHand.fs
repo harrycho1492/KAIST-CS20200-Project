@@ -405,15 +405,21 @@ type WinningHands () =
       (
         fun player tileBuild meldList finalTile isDrawn ->
           (
-            List.forall (fun (b, t, n) ->
-              ((b) && (List.contains t [ 2..8 ]) && (n = 3))
-                || ((not b) && (List.contains t circleTiles) && ((n = 2) || (n = 3)))
-            ) tileBuild
+            (List.forall (fun (t, _) -> List.contains t circleTiles) meldList) && (
+              List.forall (
+                fun (b, t, n) ->
+                  ((b) && (List.contains t [ 2..8 ]) && (n = 3))
+                    || ((not b) && (List.contains t circleTiles) && ((n = 2) || (n = 3)))
+              ) tileBuild
+            )
           ) || (
-            List.forall (fun (b, t, n) ->
-              ((b) && (List.contains t [ 11..17 ]) && (n = 3))
-                || ((not b) && (List.contains t bambooTiles) && ((n = 2) || (n = 3)))
-            ) tileBuild
+            (List.forall (fun (t, _) -> List.contains t bambooTiles) meldList) && (
+              List.forall (
+                fun (b, t, n) ->
+                  ((b) && (List.contains t [ 2..8 ]) && (n = 3))
+                    || ((not b) && (List.contains t bambooTiles) && ((n = 2) || (n = 3)))
+              ) tileBuild
+            )
           )
       ),
       5, 6, [ "Common Flush" ]
@@ -423,17 +429,23 @@ type WinningHands () =
       (
         fun player tileBuild meldList finalTile isDrawn ->
           (
-            List.forall (fun (b, t, n) ->
-              ((b) && (List.contains t [ 2..8 ]) && (n = 3)) || (
-                (not b) && (List.contains t (List.append circleTiles honorTiles)) && ((n = 2) || (n = 3))
-              )
-            ) tileBuild
+            let temp1 = List.append circleTiles honorTiles
+            (List.forall (fun (t, _) -> List.contains t temp1) meldList) && (
+              List.forall (
+                fun (b, t, n) ->
+                  ((b) && (List.contains t [ 2..8 ]) && (n = 3))
+                    || ((not b) && (List.contains t temp1) && ((n = 2) || (n = 3)))
+              ) tileBuild
+            )
           ) || (
-            List.forall (fun (b, t, n) ->
-              ((b) && (List.contains t [ 11..17 ]) && (n = 3)) || (
-                (not b) && (List.contains t (List.append bambooTiles honorTiles)) && ((n = 2) || (n = 3))
-              )
-            ) tileBuild
+            let temp2 = List.append bambooTiles honorTiles
+            (List.forall (fun (t, _) -> List.contains t temp2) meldList) && (
+              List.forall (
+                fun (b, t, n) ->
+                  ((b) && (List.contains t [ 11..17 ]) && (n = 3))
+                    || ((not b) && (List.contains t temp2) && ((n = 2) || (n = 3)))
+              ) tileBuild
+            )
           )
       ),
       2, 3, [ ]
@@ -622,7 +634,8 @@ type WinningHands () =
       "Round Wind | East",
       (
         fun player tileBuild meldList finalTile isDrawn ->
-          List.exists (fun (b, t, n) -> (not b) && (t = 20) && (n = 3)) tileBuild
+          (List.exists (fun (t, _) -> t = 20) meldList)
+            || (List.exists (fun (b, t, n) -> (not b) && (t = 20) && (n = 3)) tileBuild)
       ),
       1, 1, [ ]
     );
@@ -630,7 +643,10 @@ type WinningHands () =
       "Seat Wind | East",
       (
         fun player tileBuild meldList finalTile isDrawn ->
-          (player = 1) && (List.exists (fun (b, t, n) -> (not b) && (t = 20) && (n = 3)) tileBuild)
+          (player = 1) && (
+            (List.exists (fun (t, _) -> t = 20) meldList)
+              || (List.exists (fun (b, t, n) -> (not b) && (t = 20) && (n = 3)) tileBuild)
+          )
       ),
       1, 1, [ ]
     );
@@ -638,7 +654,10 @@ type WinningHands () =
       "Seat Wind | South",
       (
         fun player tileBuild meldList finalTile isDrawn ->
-          (player = 2) && (List.exists (fun (b, t, n) -> (not b) && (t = 21) && (n = 3)) tileBuild)
+          (player = 2) && (
+            (List.exists (fun (t, _) -> t = 21) meldList)
+              || (List.exists (fun (b, t, n) -> (not b) && (t = 21) && (n = 3)) tileBuild)
+          )
       ),
       1, 1, [ ]
     );
@@ -646,7 +665,10 @@ type WinningHands () =
       "Seat Wind | West",
       (
         fun player tileBuild meldList finalTile isDrawn ->
-          (player = 3) && (List.exists (fun (b, t, n) -> (not b) && (t = 22) && (n = 3)) tileBuild)
+          (player = 3) && (
+            (List.exists (fun (t, _) -> t = 22) meldList)
+              || (List.exists (fun (b, t, n) -> (not b) && (t = 22) && (n = 3)) tileBuild)
+          )
       ),
       1, 1, [ ]
     );
@@ -654,7 +676,8 @@ type WinningHands () =
       "Dragon Tile | White",
       (
         fun player tileBuild meldList finalTile isDrawn ->
-          List.exists (fun (b, t, n) -> (not b) && (t = 24) && (n = 3)) tileBuild
+          (List.exists (fun (t, _) -> t = 24) meldList)
+            || (List.exists (fun (b, t, n) -> (not b) && (t = 24) && (n = 3)) tileBuild)
       ),
       1, 1, [ ]
     );
@@ -662,7 +685,8 @@ type WinningHands () =
       "Dragon Tile | Green",
       (
         fun player tileBuild meldList finalTile isDrawn ->
-          List.exists (fun (b, t, n) -> (not b) && (t = 25) && (n = 3)) tileBuild
+          (List.exists (fun (t, _) -> t = 25) meldList)
+            || (List.exists (fun (b, t, n) -> (not b) && (t = 25) && (n = 3)) tileBuild)
       ),
       1, 1, [ ]
     );
@@ -670,7 +694,8 @@ type WinningHands () =
       "Dragon Tile | Red",
       (
         fun player tileBuild meldList finalTile isDrawn ->
-          List.exists (fun (b, t, n) -> (not b) && (t = 26) && (n = 3)) tileBuild
+          (List.exists (fun (t, _) -> t = 26) meldList)
+            || (List.exists (fun (b, t, n) -> (not b) && (t = 26) && (n = 3)) tileBuild)
       ),
       1, 1, [ ]
     );
@@ -703,6 +728,41 @@ type WinningHands () =
     List.append
       (List.append canSevenPairLimitHands  standardLimitHands)
       (List.append canSevenPairNormalHands standardNormalHands)
+
+  // helper functions
+  let hasCalledOpen arg0 arg2 = not (List.forall (fun (_, y) -> y = 20 + arg0) arg2)
+  let isWinning argIn =
+    let (arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) = argIn
+    let arg10 = hasCalledOpen arg0 arg2
+    let tileBuild1 = tryBuild (List.sort (List.append arg1 [ arg3 ])) false false 7 0
+    let tileBuild2 = tryBuild (List.sort (List.append arg1 [ arg3 ])) true  true  1 0
+    let buildSuccess1 = List.length tileBuild1 > 0
+    let buildSuccess2 = List.length tileBuild2 > 0
+    (
+      (List.length arg2 = 0) && (
+        List.exists (fun (x: SpecialWinningHand) -> x.IsSatisfied arg1 arg3) typeAHands
+      )
+    ) || (
+      (buildSuccess1 || buildSuccess2) && (
+        List.exists
+          (fun (x: SituationWinningHand) -> x.IsSatisfied arg0 arg4 arg5 arg6 arg7 arg8 arg9 arg10)
+          typeBHands
+      )
+    ) || (
+      (List.length tileBuild1 > 0) && (
+        List.exists (
+          fun x ->
+            List.exists (fun (y: WinningHand) -> y.IsSatisfied arg0 x arg2 arg3 arg4 arg10) typeCHands
+        ) tileBuild1
+      )
+    ) || (
+      (List.length tileBuild2 > 0) && (
+        List.exists (
+          fun x ->
+            List.exists (fun (y: WinningHand) -> y.IsSatisfied arg0 x arg2 arg3 arg4 arg10) typeDHands
+        ) tileBuild2
+      )
+    )
     
   // argIn guide:
   // player handTileList meldList finalTile isDrawn isFirstRound isQuad isReady inOneTurn isLastTile
@@ -711,8 +771,7 @@ type WinningHands () =
   // win check for specific hand
   member __.IsThisHand handName argIn =
     let (arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) = argIn
-    let arg10 =   // hasCalledOpen
-      List.exists (fun (_, y) -> List.contains y [ 32; 33; 34; 36; 37; 38; 42; 43; 44; 46; 47; 48 ]) arg2
+    let arg10 = hasCalledOpen arg0 arg2
     let tileBuild1 = tryBuild (List.sort (List.append arg1 [ arg3 ])) false false 7 0
     let tileBuild2 = tryBuild (List.sort (List.append arg1 [ arg3 ])) true  true  1 0
     let isA = List.exists (fun (x: SpecialWinningHand)   -> x.Name = handName) typeAHands
@@ -760,50 +819,47 @@ type WinningHands () =
         && (List.exists (fun x -> thisHand.IsSatisfied arg0 x arg2 arg3 arg4 arg10) tileBuild2)
     | (false, false, false, false) -> failwith "No such winning hand"
 
-  /// Win check - input: 14 tiles
-  member __.IsWinning argIn =
+  /// Win check
+  member __.IsWinning argIn = isWinning argIn
+
+  /// Check if declaring ready is possible
+  member __.CanDeclareReady argIn =
     let (arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) = argIn
-    let arg10 =   // hasCalledOpen
-      List.exists (fun (_, y) -> List.contains y [ 32; 33; 34; 36; 37; 38; 42; 43; 44; 46; 47; 48 ]) arg2
-    let tileBuild1 = tryBuild (List.sort (List.append arg1 [ arg3 ])) false false 7 0
-    let tileBuild2 = tryBuild (List.sort (List.append arg1 [ arg3 ])) true  true  1 0
-    let buildSuccess1 = List.length tileBuild1 > 0
-    let buildSuccess2 = List.length tileBuild2 > 0
-    (
-      (List.length arg2 = 0) && (
-        List.exists (fun (x: SpecialWinningHand) -> x.IsSatisfied arg1 arg3) typeAHands
-      )
-    ) || (
-      (buildSuccess1 || buildSuccess2) && (
-        List.exists
-          (fun (x: SituationWinningHand) -> x.IsSatisfied arg0 arg4 arg5 arg6 arg7 arg8 arg9 arg10)
-          typeBHands
-      )
-    ) || (
-      (List.length tileBuild1 > 0) && (
-        List.exists (
-          fun x ->
-            List.exists (fun (y: WinningHand) -> y.IsSatisfied arg0 x arg2 arg3 arg4 arg10) typeCHands
-        ) tileBuild1
-      )
-    ) || (
-      (List.length tileBuild2 > 0) && (
-        List.exists (
-          fun x ->
-            List.exists (fun (y: WinningHand) -> y.IsSatisfied arg0 x arg2 arg3 arg4 arg10) typeDHands
-        ) tileBuild2
-      )
-    )
+    let test13Tiles newList =
+      List.exists (
+        fun x ->
+          let temp = List.sort (List.append newList [ x ])
+          (
+            (List.length arg2 = 0)
+              && (List.exists (fun (x: SpecialWinningHand) -> x.IsSatisfied newList arg3) typeAHands)
+          ) || (List.length (tryBuild temp false false 7 0) > 0)
+            || (List.length (tryBuild temp true  true  1 0) > 0)
+      ) [ for i in 0..26 -> (4 * i + 3) ]
+    let candidates =
+      List.filter (
+        fun x ->
+          let newList =
+            List.append
+              (List.map (fun (_, z) -> z) (List.filter (fun (y, _) -> not (y = x)) (List.indexed arg1)))
+              [ arg3 ]
+          test13Tiles newList
+      ) [ 0..(List.length arg1 - 1) ]
+    if (test13Tiles arg1) then (List.append candidates [ 13 ]) else (candidates)
   
-  /// Tenpai check - input: 13 tiles
+  /// Check if one more tile can directly let you win
   member __.IsOneAway argIn =
     () // TBA
+    (*
+    let (arg0, arg1, arg2, arg5, arg6, arg7, arg8, arg9) = argIn
+    List.exists (
+      fun x -> isWinning (arg0, arg1, arg2, x, true, arg5, arg6, arg7, arg8, arg9)
+    ) [ for i in 0..26 -> (4 * i + 3) ]
+    *)
   
   /// Calculate points
   member __.GetPoints argIn bonusTiles =
     let (arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) = argIn
-    let arg10 =   // hasCalledOpen
-      List.exists (fun (_, y) -> List.contains y [ 32; 33; 34; 36; 37; 38; 42; 43; 44; 46; 47; 48 ]) arg2
+    let arg10 = hasCalledOpen arg0 arg2
     let (defaultBonus, hiddenBonus) = bonusTiles
     let tileBuild1 = tryBuild (List.sort (List.append arg1 [ arg3 ])) false false 7 0
     let tileBuild2 = tryBuild (List.sort (List.append arg1 [ arg3 ])) true  true  1 0
@@ -966,7 +1022,7 @@ type WinningHands () =
             ) 0 hiddenBonus
           ) else (0)
         let bonusList3 =
-          if (defaultBonusPoint > 0)
+          if (hiddenBonusPoint > 0)
             then (List.append bonusList2 [ (hiddenBonusPoint, "Hidden Bonus Tiles") ])
             else (bonusList2)
         (false, finalPoint + redBonusPoint + defaultBonusPoint + hiddenBonusPoint, bonusList3)

@@ -114,17 +114,15 @@ type GameStatus () =
       | 2 -> (52, 58)
       | 3 -> (53, 56)
       | _ -> failwith "Fatal error"
-    if ((Array.contains na tiles) || (Array.contains nb tiles)) then (
-      let ta = Array.map (fun (x, _) -> x) (Array.filter (fun (_, y) -> y = na) (Array.indexed tiles))
-      let tb = Array.map (fun (x, _) -> x) (Array.filter (fun (_, y) -> y = nb) (Array.indexed tiles))
-      if ((not ((Array.length ta) % 3 = 0)) || (not ((Array.length ta) % 3 = 0))) then (
-        failwith "Fatal error"
-      ) else (
-        Array.append
-          (Array.map (fun (_, y) -> (y / 4, na)) (Array.filter (fun (x, _) -> x % 3 = 0) (Array.indexed ta)))
-          (Array.map (fun (_, y) -> (y / 4, nb)) (Array.filter (fun (x, _) -> x % 3 = 0) (Array.indexed tb)))
-      )
-    ) else ( [| |] )
+    let ta = Array.map (fun (x, _) -> x) (Array.filter (fun (_, y) -> y = na) (Array.indexed tiles))
+    let tb = Array.map (fun (x, _) -> x) (Array.filter (fun (_, y) -> y = nb) (Array.indexed tiles))
+    if ((not ((Array.length ta) % 3 = 0)) || (not ((Array.length ta) % 3 = 0))) then (
+      failwith "Fatal error"
+    ) else (
+      Array.append
+        (Array.map (fun (_, y) -> (y / 4, na)) (Array.filter (fun (x, _) -> x % 3 = 2) (Array.indexed ta)))
+        (Array.map (fun (_, y) -> (y / 4, nb)) (Array.filter (fun (x, _) -> x % 3 = 2) (Array.indexed tb)))
+    )
   let getMeldTiles n =
     Array.toList (
       Array.append
@@ -442,4 +440,28 @@ type GameStatus () =
       printfn "%d tiles remaining in the stack\n" (remainingTiles ())
     | _ -> failwith "Fatal error"
 
+  member __.DisplayWin (arg1: int list) (arg2: (int * int) list) arg3 =
+    printf "%s" (tileNotation arg1.Head)
+    List.map (fun x -> printf " | %s" (tileNotation x)) arg1.Tail |> ignore
+    List.map (
+      fun (x, y) ->
+        if (List.contains y [ 21; 22; 23; 32; 33; 34; 36; 37; 38; 42; 43; 44; 46; 47; 48 ])
+          then (
+            printf " | [ "
+            for i in [ 0..3 ] do printf "%s " (tileNotation (4 * x + i))
+            printf "]"
+          )
+          else (
+            let exclude =
+              Array.findIndex (
+                fun x -> not (List.contains x [ 52; 53; 54; 56; 57; 58 ])
+              ) tiles[ (4 * x)..(4 * x + 3) ]
+            printf " | [ "
+            for i in [ 0..3 ] do
+              if (not (i = exclude)) then (printf "%s " (tileNotation (4 * x + i)))
+            printf "]"
+          )
+    ) arg2 |> ignore
+    printfn " | %s\n" (tileNotation arg3)
+  
   // TBA - More methods to change and/or show game status

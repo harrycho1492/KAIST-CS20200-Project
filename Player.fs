@@ -22,61 +22,73 @@ type Player (playerIsUser) =
   member __.RemovePenalty () =
     if (hasTempPenalty < 2) then (hasTempPenalty <- 0;)
 
-  member __.NextMove valid isWinning canMakeQuad has4zTile canAbort = // TBA - should get inArg also
-    if (playerIsUser) then (
-      let rec getSelection () =
-        let checkAndReturn n =
-          if (n > valid) then (
-            printfn "\n[*] Invalid option.\n"; getSelection ()
-          ) else (
-            printfn ""; n
-          )
-        printfn "Select the tile to discard / Select action:"
-        System.Console.Write "> "
-        match System.Console.ReadLine () with
-        | "01" | "1" -> checkAndReturn 0
-        | "02" | "2" -> checkAndReturn 1
-        | "03" | "3" -> checkAndReturn 2
-        | "04" | "4" -> checkAndReturn 3
-        | "05" | "5" -> checkAndReturn 4
-        | "06" | "6" -> checkAndReturn 5
-        | "07" | "7" -> checkAndReturn 6
-        | "08" | "8" -> checkAndReturn 7
-        | "09" | "9" -> checkAndReturn 8
-        | "10"       -> checkAndReturn 9
-        | "11"       -> checkAndReturn 10
-        | "12"       -> checkAndReturn 11
-        | "13"       -> checkAndReturn 12
-        | "14"       -> printfn ""; 13
-        | "15"       ->
-          if (isWinning) then (printfn ""; 14)
-            else (printfn "\n[*] Invalid option.\n"; getSelection ())
-        | "17"       ->
-          if (canMakeQuad) then (printfn ""; 16)
-            else (printfn "\n[*] Invalid option.\n"; getSelection ())
-        | "18"       ->
-          if (has4zTile) then (printfn ""; 17)
-            else (printfn "\n[*] Invalid option.\n"; getSelection ())
-        | "19"       ->
-          if (canAbort) then (printfn ""; 18)
-            else (printfn "\n[*] Invalid option.\n"; getSelection ())
-        | _ -> printfn "\n[*] Invalid option.\n"; getSelection ()
-      getSelection ()
+  member __.NextMove valid isWinning isReady canReady canMakeQuad has4zTile canAbort =
+    // TBA - should get inArg also
+    if (
+      (isReady) && (not isWinning) && (not canMakeQuad) && (not has4zTile) && (not canAbort)
+    ) then (
+      printfn "Automatically discarding drawn tile...\n"; 13
     ) else (
-      match (isWinning, canAbort, canMakeQuad, has4zTile) with
-      | (true,  _,     _,     _)    -> 14
-      | (false, true,  _,     _)    -> 18
-      | (false, false, true,  _)    -> 16
-      | (false, false, false, true) -> 17
-      | _ ->
-        let temp =
-          if (canMakeQuad) then (rand.Next (0, valid + 3)) else (rand.Next (0, valid + 2))
-        match temp with
-        | x when (x > -1) && (x < (valid + 1)) -> x
-        | x when x = (valid + 1) -> 13
-        | x when x = (valid + 2) -> 16
-        | _ -> failwith "Fatal error"
+      if (playerIsUser) then (
+        let rec getSelection () =
+          let checkAndReturn n =
+            if ((not isReady) && (n > valid)) then (
+              printfn "\n[*] Invalid option.\n"; getSelection ()
+            ) else (
+              printfn ""; n
+            )
+          printfn "Select the tile to discard / Select action:"
+          System.Console.Write "> "
+          match System.Console.ReadLine () with
+          | "01" | "1" -> checkAndReturn 0
+          | "02" | "2" -> checkAndReturn 1
+          | "03" | "3" -> checkAndReturn 2
+          | "04" | "4" -> checkAndReturn 3
+          | "05" | "5" -> checkAndReturn 4
+          | "06" | "6" -> checkAndReturn 5
+          | "07" | "7" -> checkAndReturn 6
+          | "08" | "8" -> checkAndReturn 7
+          | "09" | "9" -> checkAndReturn 8
+          | "10"       -> checkAndReturn 9
+          | "11"       -> checkAndReturn 10
+          | "12"       -> checkAndReturn 11
+          | "13"       -> checkAndReturn 12
+          | "14"       -> printfn ""; 13
+          | "15"       ->
+            if (isWinning) then (printfn ""; 14)
+              else (printfn "\n[*] Invalid option.\n"; getSelection ())
+          | "16"       ->
+            if (canReady) then (printfn ""; 15)
+              else (printfn "\n[*] Invalid option.\n"; getSelection ())
+          | "17"       ->
+            if (canMakeQuad) then (printfn ""; 16)
+              else (printfn "\n[*] Invalid option.\n"; getSelection ())
+          | "18"       ->
+            if (has4zTile) then (printfn ""; 17)
+              else (printfn "\n[*] Invalid option.\n"; getSelection ())
+          | "19"       ->
+            if (canAbort) then (printfn ""; 18)
+              else (printfn "\n[*] Invalid option.\n"; getSelection ())
+          | _ -> printfn "\n[*] Invalid option.\n"; getSelection ()
+        getSelection ()
+      ) else (
+        match (isWinning, canReady, canAbort, canMakeQuad, has4zTile) with
+        | (true,  _,     _,     _,     _)    -> 14
+        | (false, true,  _,     _,     _)    -> 15
+        | (false, false, true,  _,     _)    -> 18
+        | (false, false, false, true,  _)    -> 16
+        | (false, false, false, false, true) -> 17
+        | _ ->
+          let temp =
+            if (canMakeQuad) then (rand.Next (0, valid + 3)) else (rand.Next (0, valid + 2))
+          match temp with
+          | x when (x > -1) && (x < (valid + 1)) -> x
+          | x when x = (valid + 1) -> 13
+          | x when x = (valid + 2) -> 16
+          | _ -> failwith "Fatal error"
+      )
     )
+    
   member __.SelectQuadOption length =
     if (playerIsUser) then (
       let rec getSelection () =

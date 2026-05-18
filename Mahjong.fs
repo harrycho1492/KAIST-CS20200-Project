@@ -29,17 +29,23 @@ type Mahjong (userPos) =
         let bonusTiles = status.BonusTiles ()
         match List.length infoList with
         | 1 -> 
-          let (handInfo, n) = infoList.Head
-          let (isLimit, points, handList) = hands.GetPoints handInfo bonusTiles
+          let (isLimit, points, handList) =
+            hands.GetPoints (infoList.Head) bonusTiles
+          let (n, arg1, arg2, arg3, _, _, _, _, _, _) = infoList.Head
           printfn "Player %d has won!\n" n
+          status.DisplayWin arg1 arg2 arg3
           printResult isLimit points handList
         | 2 ->
-          let (handInfo1, n1) = infoList.Head
-          let (isLimit1, points1, handList1) = hands.GetPoints handInfo1 bonusTiles
-          let (handInfo2, n2) = infoList.Tail.Head
-          let (isLimit2, points2, handList2) = hands.GetPoints handInfo2 bonusTiles
+          let (isLimit1, points1, handList1) =
+            hands.GetPoints (infoList.Head) bonusTiles
+          let (n1, n1arg1, n1arg2, n1arg3, _, _, _, _, _, _) = infoList.Head
+          let (isLimit2, points2, handList2) =
+            hands.GetPoints (infoList.Tail.Head) bonusTiles
+          let (n2, n2arg1, n2arg2, n2arg3, _, _, _, _, _, _) = infoList.Tail.Head
           printfn "Player %d and %d has both won!\n" n1 n2
+          status.DisplayWin n1arg1 n1arg2 n1arg3   // temporary
           printResult isLimit1 points1 handList1
+          status.DisplayWin n2arg1 n2arg2 n2arg3   // temporary
           printResult isLimit2 points2 handList2
         | _ -> failwith "Fatal error"
         ()
@@ -109,9 +115,9 @@ type Mahjong (userPos) =
               if (not choice) then (players[np2 - 1].GivePenalty (); false) else (true)
             ) else (false)
           match (win1, win2) with
-          | (true,  true)  -> handleWin [ (handInfo1, np1); (handInfo2, np2) ]
-          | (true,  false) -> handleWin [ (handInfo1, np1) ]
-          | (false, true)  -> handleWin [ (handInfo2, np2) ]
+          | (true,  true)  -> handleWin [ handInfo1; handInfo2 ]
+          | (true,  false) -> handleWin [ handInfo1 ]
+          | (false, true)  -> handleWin [ handInfo2 ]
           | (false, false) ->
             status.IncrementQuad ()
             handleNextTurn true false actionPlayer
@@ -138,37 +144,43 @@ type Mahjong (userPos) =
           let countTile handInfo =
             let (_, arg1, _, _, _, _, _, _, _, _) = handInfo
             List.fold (fun x y -> if (y / 4 = currTile / 4) then (x + 1) else (x)) 0 arg1
+          let nr1 = (players[np1 - 1].IsReady () = 0)
+          let nr2 = (players[np2 - 1].IsReady () = 0)
           let quad1 =
-            if ((not (win1 || win2)) && (not keepTurn) && (countTile handInfo1 = 3)) then (
+            if (
+              (not (win1 || win2)) && (not keepTurn) && (nr1) && (countTile handInfo1 = 3)
+            ) then (
               players[np1 - 1].DoQuad ()
               // TBA - should feed handInfo as argument for bot information
             ) else (false)
           let quad2 =
-            if ((not (win1 || win2 || quad1)) && (not keepTurn) && (countTile handInfo2 = 3)) then (
+            if (
+              (not (win1 || win2 || quad1)) && (not keepTurn) && (nr2) && (countTile handInfo2 = 3)
+            ) then (
               players[np2 - 1].DoQuad ()
               // TBA - should feed handInfo as argument for bot information
             ) else (false)
           let tri1 =
             if (
-              (not (win1 || win2 || quad1 || quad2))
-                && (not keepTurn) && (countTile handInfo1 = 2)
+              (not (win1 || win2 || quad1 || quad2)) && (not keepTurn)
+                && (nr1) && (countTile handInfo1 = 2)
             ) then (
               players[np1 - 1].DoTri ()
               // TBA - should feed handInfo as argument for bot information
             ) else (false)
           let tri2 =
             if (
-              (not (win1 || win2 || quad1 || quad2 || tri1))
-                && (not keepTurn) && (countTile handInfo2 = 2)
+              (not (win1 || win2 || quad1 || quad2 || tri1)) && (not keepTurn)
+                && (nr2) && (countTile handInfo2 = 2)
             ) then (
               players[np2 - 1].DoTri ()
               // TBA - should feed handInfo as argument for bot information
             ) else (false)
           match (win1, win2, quad1, quad2, tri1, tri2) with
           | (true,  true,  _,     _,     _,     _)     ->
-            handleWin [ (handInfo1, np1); (handInfo2, np2) ]
-          | (true,  false, _,     _,     _,     _)     -> handleWin [ (handInfo1, np1) ]
-          | (false, true,  _,     _,     _,     _)     -> handleWin [ (handInfo2, np2) ]
+            handleWin [ handInfo1; handInfo2 ]
+          | (true,  false, _,     _,     _,     _)     -> handleWin [ handInfo1 ]
+          | (false, true,  _,     _,     _,     _)     -> handleWin [ handInfo2 ]
           | (false, false, true,  _,     _,     _)     -> handleQuad np1
           | (false, false, false, true,  _,     _)     -> handleQuad np2
           | (false, false, false, false, true,  _)     -> handleTri  np1
@@ -186,30 +198,49 @@ type Mahjong (userPos) =
         | (2, 3) -> status.IncrementFirstRound (); true
         | (3, 3) -> true
         | (_, _) -> status.EndFirstRound (); false
-      // draw tile
-      let drawnTile = status.DrawTile wasQuad turn
+      let drawnTile = status.DrawTile wasQuad turn   // draw tile
       // printfn "Player %d has drawn: %s\n" turn drawnTile   // For debugging
       if (players[turn - 1].HasTempPenalty ()) then (players[turn - 1].RemovePenalty ();)
+      let (arg1x, arg2, arg3) = status.ConstructHand turn
+      let arg1 = Array.toList arg1x
+      let arg9 = not (status.CanDrawTile ())
       let handInfo =
-        let (arg1, arg2, arg3) = status.ConstructHand turn
         (
-          turn, (Array.toList arg1), arg2, arg3, true, isFirstRound, wasQuad,
-          players[turn - 1].IsReady (), false, not (status.CanDrawTile ())   // TBA - arg8 (inOneTurn)
+          turn, arg1, arg2, arg3, true, isFirstRound, wasQuad,
+          players[turn - 1].IsReady (), false, arg9   // TBA - arg8 (inOneTurn)
         )
-      let (_, arg1, _, arg3, _, _, _, _, _, arg9) = handInfo
-      let isWinning  = hands.IsWinning handInfo
-      // TBA - claiming ready
+      let isWinning = hands.IsWinning handInfo
+      let isReady   = players[turn - 1].IsReady () > 0
+      let readyOpt  = hands.CanDeclareReady handInfo
+      let canReady  =
+        (not isReady) && (List.length readyOpt > 0) && (List.forall (fun (_, y) -> y = 20 + turn) arg2)
       let quadOption =
         if (
           ((status.NumQuads () + (if (shouldIncrementQuad) then (1) else (0))) < 4) && (not arg9)
-        ) then (status.TryMakeMeld turn) else ( [ ] )
+        ) then (
+          let temp = status.TryMakeMeld turn
+          if (isReady) then (   // TBA - filter cases where the waiting tiles change
+            List.filter (fun (x, y, _) -> (x) || (y = arg3 / 4)) temp
+          ) else (temp)
+        ) else ( [ ] )
       let canPutAside4zTile =
         (not arg9) && ((List.exists (fun x -> x / 4 = 23) arg1) || (arg3 / 4 = 23))
       let canAbort = (isFirstRound) && (status.AbortByNineTerminalsAndHonors turn)
       if (players[turn - 1].IsUser ()) then (
         status.Display turn
         if (isWinning) then (printfn "Winning possible: Enter [15] to claim victory")
-        // TBA - claiming ready
+        if (canReady) then (
+          match List.length readyOpt with
+          | 1 -> 
+            printfn "Claiming ready possible: Enter [16] to perform action"
+            printfn "(Index of tile to discard in case: %d)" (readyOpt.Head + 1)
+          | x when x > 1 ->
+            printfn "Claiming ready possible: Enter [16] to perform action"
+            printf "(Index of tiles to discard in case: %d" (readyOpt.Head + 1)
+            for i in readyOpt.Tail do printf ", %d" (i + 1)
+            printfn ")"
+          | _ -> failwith "Fatal error"
+        )
         match List.length quadOption with
         | 0 -> ()
         | x when (x > 0) && (x < 5) -> printfn "Possible to make a quad: Enter [17] to perform action"
@@ -226,11 +257,40 @@ type Mahjong (userPos) =
       if (shouldIncrementQuad) then (status.IncrementQuad ())
       let nextMove =
         players[turn - 1].NextMove
-          (List.length arg1 - 1) isWinning (List.length quadOption > 0) canPutAside4zTile canAbort
+          (List.length arg1 - 1) isWinning isReady canReady
+          (List.length quadOption > 0) canPutAside4zTile canAbort
         // TBA - should feed handInfo as argument for bot information
       match nextMove with
-      | 14 -> handleWin [ (handInfo, turn) ]
-      // TBA - claiming ready (15)
+      | 14 -> handleWin [ handInfo ]
+      | 15 ->
+        match List.length readyOpt with
+        | 1 ->
+          let (discardedTile, discadedTileName) =
+            if (readyOpt.Head = 13) then (
+              status.DiscardTile arg3 turn
+            ) else (
+              status.DiscardTile arg1[readyOpt.Head] turn
+            )
+          players[turn - 1].DeclareReady isFirstRound
+          printfn "Player %d has discarded: %s" turn discadedTileName
+          printfn "Player %d has declared ready!\n" turn
+          status.SetTile turn
+          handleReaction turn discardedTile 0 false
+        | x when (x > 1) ->
+          let readySelection =
+            readyOpt.Head // **TODO** - get user selection
+          let (discardedTile, discadedTileName) =
+            if (readySelection = 13) then (
+              status.DiscardTile arg3 turn
+            ) else (
+              status.DiscardTile arg1[readySelection] turn
+            )
+          players[turn - 1].DeclareReady isFirstRound
+          printfn "Player %d has discarded: %s\n" turn discadedTileName
+          printfn "Player %d has declared ready!" turn
+          status.SetTile turn
+          handleReaction turn discardedTile 0 false
+        | _ -> failwith "Fatal error"
       | 16 ->
         let ((meldedTile, meldedTileName), isAddedQuad) =
           match List.length quadOption with
@@ -290,7 +350,7 @@ type Mahjong (userPos) =
     status.Init ()
     // status.Display 0   // for debugging
     mainLoop false false 1
-    status.Display 0   // for debugging
+    // status.Display 0   // for debugging
     printfn "Some functions of the original game is still missing,"
     printfn "but content will be added in due time...\n"
     ()
