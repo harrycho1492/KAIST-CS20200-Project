@@ -29,23 +29,26 @@ type Mahjong (userPos) =
         let bonusTiles = status.BonusTiles ()
         match List.length infoList with
         | 1 -> 
-          let (isLimit, points, handList) =
-            hands.GetPoints (infoList.Head) bonusTiles
           let (n, arg1, arg2, arg3, _, _, _, _, _, _) = infoList.Head
+          let redAndNorthBonus = status.RedAndNorthBonus n
+          let (isLimit, points, handList) =
+            hands.GetPoints (infoList.Head) bonusTiles redAndNorthBonus
           printfn "Player %d has won!\n" n
-          status.DisplayWin arg1 arg2 arg3
+          status.DisplayWin arg1 arg2 arg3 bonusTiles
           printResult isLimit points handList
         | 2 ->
-          let (isLimit1, points1, handList1) =
-            hands.GetPoints (infoList.Head) bonusTiles
           let (n1, n1arg1, n1arg2, n1arg3, _, _, _, _, _, _) = infoList.Head
-          let (isLimit2, points2, handList2) =
-            hands.GetPoints (infoList.Tail.Head) bonusTiles
+          let redAndNorthBonus1 = status.RedAndNorthBonus n1
+          let (isLimit1, points1, handList1) =
+            hands.GetPoints (infoList.Head) bonusTiles redAndNorthBonus1
           let (n2, n2arg1, n2arg2, n2arg3, _, _, _, _, _, _) = infoList.Tail.Head
+          let redAndNorthBonus2 = status.RedAndNorthBonus n2
+          let (isLimit2, points2, handList2) =
+            hands.GetPoints (infoList.Tail.Head) bonusTiles redAndNorthBonus2
           printfn "Player %d and %d has both won!\n" n1 n2
-          status.DisplayWin n1arg1 n1arg2 n1arg3   // temporary
+          status.DisplayWin n1arg1 n1arg2 n1arg3 bonusTiles
           printResult isLimit1 points1 handList1
-          status.DisplayWin n2arg1 n2arg2 n2arg3   // temporary
+          status.DisplayWin n2arg1 n2arg2 n2arg3 bonusTiles
           printResult isLimit2 points2 handList2
         | _ -> failwith "Fatal error"
         ()
@@ -53,23 +56,19 @@ type Mahjong (userPos) =
       let rec handleReaction actionPlayer currTile actionType keepTurn =
         // actionType: 1 - closed quad, 2 - added quad, 3 - North (4z) put aside, 0 - other
         let handleNextTurn wasQuad incrementQuadNext nextPlayer =
-          // check for no winning hand abort & call this player
-          match (status.AbortBy4Quads (), status.CanDrawTile ()) with
-          | (true,  _)     ->
-            printfn "Abort by 4 quads\n"
-            ()
-          | (false, true)  ->
-            mainLoop wasQuad incrementQuadNext nextPlayer
-          | (false, false) ->
-            printfn "No player was able to complete a winning hand.\n"
-            ()
+          match (status.AbortBy4Quads (), status.CanDrawTile ()) with   // check for abort
+          | (true,  _)     -> printfn "Abort by 4 quads\n"; ()
+          | (false, true)  -> mainLoop wasQuad incrementQuadNext nextPlayer
+          | (false, false) -> printfn "No player was able to complete a winning hand.\n"; ()
         
         let handleQuad n =
+          for i in 0..2 do players[i].EndOneTurn ()
           let meldedTile = status.CallMeld true currTile actionPlayer n
           status.EndFirstRound ()
           printfn "Player %d has called for an open quad: %s\n" n meldedTile; handleNextTurn true true n
         
         let handleTri n =
+          for i in 0..2 do players[i].EndOneTurn ()
           let meldedTile = status.CallMeld false currTile actionPlayer n
           status.EndFirstRound ()
           printfn "Player %d has called for a triplet: %s\n" n meldedTile
@@ -85,21 +84,23 @@ type Mahjong (userPos) =
           let (arg1, arg2, _) = status.ConstructHand np1
           (
             np1, (Array.toList arg1), arg2, currTile, false, false, actionType = 2,
-            players[np1 - 1].IsReady (), false, not (status.CanDrawTile ())
+            players[np1 - 1].IsReady (), players[np1 - 1].InOneTurn (), not (status.CanDrawTile ())
           )
+        let waiting1  = hands.IsOneAway handInfo1
         let handInfo2 =
           let (arg1, arg2, _) = status.ConstructHand np2
           (
             np2, (Array.toList arg1), arg2, currTile, false, false, actionType = 2,
-            players[np2 - 1].IsReady (), false, not (status.CanDrawTile ())
+            players[np2 - 1].IsReady (), players[np2 - 1].InOneTurn (), not (status.CanDrawTile ())
           )
-        if (actionType = 1) then (
-          // TBA - check if someone is waiting for "Thirteen orphans"
+        let waiting2  = hands.IsOneAway handInfo2
+        if (actionType = 1) then (   // check if someone is waiting for "Thirteen orphans"
+          for i in 0..2 do players[i].EndOneTurn ()
           let testList = [ "Thirteen Orphans | 13-tile Wait"; "Thirteen Orphans" ]
           let win1 =
             if (
               (List.exists (fun x -> hands.IsThisHand x handInfo1) testList)
-                && (not (status.IsPenalty currTile np1)) && (not (players[np1 - 1].HasTempPenalty ()))
+                && (not (status.IsPenalty waiting1 np1)) && (not (players[np1 - 1].HasTempPenalty ()))
             ) then (
               let choice = players[np1 - 1].DoWin ()
               // TBA - should feed handInfo as argument for bot information
@@ -108,7 +109,7 @@ type Mahjong (userPos) =
           let win2 =
             if (
               (not win1) && (List.exists (fun x -> hands.IsThisHand x handInfo2) testList)
-                && (not (status.IsPenalty currTile np2)) && (not (players[np2 - 1].HasTempPenalty ()))
+                && (not (status.IsPenalty waiting2 np2)) && (not (players[np2 - 1].HasTempPenalty ()))
             ) then (
               let choice = players[np2 - 1].DoWin ()
               // TBA - should feed handInfo as argument for bot information
@@ -122,25 +123,43 @@ type Mahjong (userPos) =
             status.IncrementQuad ()
             handleNextTurn true false actionPlayer
         ) else (
-          // check if someone is waiting for any winning tile
-          let win1 =
+          let debugWin checks =
+            match checks with
+            | (false, _,     _)     -> printfn "[Declined: Reason 1]"
+            | (true,  false, _)     -> printfn "[Declined: Reason 2]"
+            | (true,  true,  false) -> printfn "[Declined: Reason 3]"
+            | (true,  true,  true)  -> printfn "[Should be accepted]"
+
+          let win1 =   // check if someone is waiting for a winning tile
+            let (check1, check2, check3) = (
+              hands.IsWinning handInfo1,
+              not (status.IsPenalty waiting1 np1),
+              not (players[np1 - 1].HasTempPenalty ())
+            )
             if (
-              (hands.IsWinning handInfo1) && (not (status.IsPenalty currTile np1))
-                && (not (players[np1 - 1].HasTempPenalty ()))
+              check1 && check2 && check3
+              // (hands.IsWinning handInfo1) && (not (status.IsPenalty waiting1 np1))
+              //   && (not (players[np1 - 1].HasTempPenalty ()))
             ) then (
               let choice = players[np1 - 1].DoWin ()
               // TBA - should feed handInfo as argument for bot information
               if (not choice) then (players[np1 - 1].GivePenalty (); false) else (true)
-            ) else (false)
+            ) else (false)   // debugWin (check1, check2, check3); false
           let win2 =
+            let (check1, check2, check3) = (
+              hands.IsWinning handInfo2,
+              not (status.IsPenalty waiting2 np2),
+              not (players[np2 - 1].HasTempPenalty ())
+            )
             if (
-              (not win1) && (hands.IsWinning handInfo2) && (not (status.IsPenalty currTile np2))
-                && (not (players[np2 - 1].HasTempPenalty ()))
+              check1 && check2 && check3
+              // (not win1) && (hands.IsWinning handInfo2) && (not (status.IsPenalty waiting2 np2))
+              //   && (not (players[np2 - 1].HasTempPenalty ()))
             ) then (
               let choice = players[np2 - 1].DoWin ()
               // TBA - should feed handInfo as argument for bot information
               if (not choice) then (players[np2 - 1].GivePenalty (); false) else (true)
-            ) else (false)
+            ) else (false)   // debugWin (check1, check2, check3); false
           let countTile handInfo =
             let (_, arg1, _, _, _, _, _, _, _, _) = handInfo
             List.fold (fun x y -> if (y / 4 = currTile / 4) then (x + 1) else (x)) 0 arg1
@@ -186,6 +205,7 @@ type Mahjong (userPos) =
           | (false, false, false, false, true,  _)     -> handleTri  np1
           | (false, false, false, false, false, true)  -> handleTri  np2
           | (false, false, false, false, false, false) ->
+            if (keepTurn) then (for i in 0..2 do players[i].EndOneTurn ())
             handleNextTurn keepTurn (actionType = 2) (if (keepTurn) then (actionPlayer) else (np1))
         )
 
@@ -207,7 +227,7 @@ type Mahjong (userPos) =
       let handInfo =
         (
           turn, arg1, arg2, arg3, true, isFirstRound, wasQuad,
-          players[turn - 1].IsReady (), false, arg9   // TBA - arg8 (inOneTurn)
+          players[turn - 1].IsReady (), players[turn - 1].InOneTurn (), arg9
         )
       let isWinning = hands.IsWinning handInfo
       let isReady   = players[turn - 1].IsReady () > 0
@@ -219,8 +239,20 @@ type Mahjong (userPos) =
           ((status.NumQuads () + (if (shouldIncrementQuad) then (1) else (0))) < 4) && (not arg9)
         ) then (
           let temp = status.TryMakeMeld turn
-          if (isReady) then (   // TBA - filter cases where the waiting tiles change
-            List.filter (fun (x, y, _) -> (x) || (y = arg3 / 4)) temp
+          if (isReady) then (
+            List.filter (
+              fun (x, y, _) ->
+                (x) || ((y = arg3 / 4) && (
+                  let newHand =
+                    (
+                      turn, List.filter (fun x -> not (x / 4 = y)) arg1,
+                      List.append arg2 [ (y, 20 + turn) ], -1, true, isFirstRound,
+                      wasQuad, players[turn - 1].IsReady (), false, arg9
+                    )
+                  List.fold2 (fun x y z -> if (y = z) then (x) else (false)) true
+                    (hands.IsOneAway handInfo) (hands.IsOneAway newHand)
+                ))
+            ) temp
           ) else (temp)
         ) else ( [ ] )
       let canPutAside4zTile =
@@ -230,16 +262,13 @@ type Mahjong (userPos) =
         status.Display turn
         if (isWinning) then (printfn "Winning possible: Enter [15] to claim victory")
         if (canReady) then (
-          match List.length readyOpt with
-          | 1 -> 
-            printfn "Claiming ready possible: Enter [16] to perform action"
-            printfn "(Index of tile to discard in case: %d)" (readyOpt.Head + 1)
-          | x when x > 1 ->
-            printfn "Claiming ready possible: Enter [16] to perform action"
-            printf "(Index of tiles to discard in case: %d" (readyOpt.Head + 1)
-            for i in readyOpt.Tail do printf ", %d" (i + 1)
-            printfn ")"
-          | _ -> failwith "Fatal error"
+          printfn "Claiming ready possible: Enter [16] to perform action"
+          List.map (
+            fun (x, l) ->
+              printfn "- If tile #%2d is discarded, then the list of waiting tile(s) is:" (x + 1)
+              printf  "  %s" (status.DisplayTiles l)
+              if (status.IsPenalty l turn) then (printfn " [Penalty]") else (printfn "")
+          ) readyOpt |> ignore
         )
         match List.length quadOption with
         | 0 -> ()
@@ -255,6 +284,7 @@ type Mahjong (userPos) =
         )
       )
       if (shouldIncrementQuad) then (status.IncrementQuad ())
+      if (players[turn - 1].InOneTurn ()) then (players[turn - 1].EndOneTurn ())
       let nextMove =
         players[turn - 1].NextMove
           (List.length arg1 - 1) isWinning isReady canReady
@@ -265,12 +295,11 @@ type Mahjong (userPos) =
       | 15 ->
         match List.length readyOpt with
         | 1 ->
+          let (target, _) = readyOpt.Head
           let (discardedTile, discadedTileName) =
-            if (readyOpt.Head = 13) then (
-              status.DiscardTile arg3 turn
-            ) else (
-              status.DiscardTile arg1[readyOpt.Head] turn
-            )
+            if (target = 13)
+              then (status.DiscardTile arg3 turn)
+              else (status.DiscardTile arg1[target] turn)
           players[turn - 1].DeclareReady isFirstRound
           printfn "Player %d has discarded: %s" turn discadedTileName
           printfn "Player %d has declared ready!\n" turn
@@ -278,13 +307,12 @@ type Mahjong (userPos) =
           handleReaction turn discardedTile 0 false
         | x when (x > 1) ->
           let readySelection =
-            readyOpt.Head // **TODO** - get user selection
+            players[turn - 1].SelectReadyOption (List.map (fun (x, l) -> x) readyOpt)
+            // TBA - should feed handInfo as argument for bot information
           let (discardedTile, discadedTileName) =
-            if (readySelection = 13) then (
-              status.DiscardTile arg3 turn
-            ) else (
-              status.DiscardTile arg1[readySelection] turn
-            )
+            if (readySelection = 13)
+              then (status.DiscardTile arg3 turn)
+              else (status.DiscardTile arg1[readySelection] turn)
           players[turn - 1].DeclareReady isFirstRound
           printfn "Player %d has discarded: %s\n" turn discadedTileName
           printfn "Player %d has declared ready!" turn
@@ -303,8 +331,7 @@ type Mahjong (userPos) =
             if (players[turn - 1].IsUser ()) then (
               printfn "Multiple options available:"
               for i in 0..(x - 1) do
-                printfn "[%d] %s %s"
-                  (i + 1)
+                printfn "[%d] %s %s" (i + 1)
                   (if (List.item i areAdded) then ("(Added) ") else ("(Closed)"))
                   (List.item i optionNames)
             )
@@ -333,11 +360,9 @@ type Mahjong (userPos) =
         ()
       | x when ((x > -1) && (x < 14)) ->
         let (discardedTile, discadedTileName) =
-          if (x = 13) then (
-            status.DiscardTile arg3 turn
-          ) else (
-            status.DiscardTile arg1[nextMove] turn
-          )
+          if (x = 13)
+            then (status.DiscardTile arg3 turn)
+            else (status.DiscardTile arg1[nextMove] turn)
         printfn "Player %d has discarded: %s\n" turn discadedTileName
         status.SetTile turn
         handleReaction turn discardedTile 0 false
@@ -351,26 +376,45 @@ type Mahjong (userPos) =
     // status.Display 0   // for debugging
     mainLoop false false 1
     // status.Display 0   // for debugging
-    printfn "Some functions of the original game is still missing,"
-    printfn "but content will be added in due time...\n"
     ()
   
   /// Debug mode
   member __.RunDebug () =
-    // WinningHand debugging
+    // Testing correctness of point calculation algorithm
+    let testPointCalc argIn bonusTiles redAndNorthBonus =
+      let (_, arg1, arg2, arg3, _, _, _, _, _, _) = argIn
+      let (isLimit, points, handList) = hands.GetPoints argIn bonusTiles redAndNorthBonus
+      status.DisplayWin arg1 arg2 arg3 bonusTiles
+      if (isLimit)
+        then (printfn "Limit hands, %d points" points) else (printfn "Normal hands, %d points" points)
+      List.map (fun (p, n) -> printfn "[%2d points] %s" p n) handList |> ignore; printfn ""
+          
+    testPointCalc
+      (3, [ 96 ], [ (20, 23); (21, 23); (22, 23); (23, 23) ], 97, true, false, false, 0, false, false)
+      ([ 98; 104; 105; 106; 107 ], [ 99; 100; 101; 102; 103 ]) (0, 0)
+    testPointCalc
+      (2, [ 3; 7; 11; 43; 47; 79; 83; 87; 91; 95; 99; 103; 107 ], [ ], 97, true, true, false, 0, false, false)
+      ([ 98; 104; 105; 106; 107 ], [ 99; 100; 101; 102; 103 ]) (0, 0)
+    testPointCalc
+      (1, [ 8; 9; 10; 14; 18; 22; 26; 30; 34; 38; 41; 42; 43 ], [ ], 11, true, true, false, 0, false, false)
+      ([ 98; 104; 105; 106; 107 ], [ 99; 100; 101; 102; 103 ]) (0, 0)
+    testPointCalc
+      (3, [ 0; 1; 2; 4; 5; 6; 8; 9; 40; 41; 42; 76; 77 ], [ ], 78, true, true, false, 0, false, false)
+      ([ 98; 104; 105; 106; 107 ], [ 99; 100; 101; 102; 103 ]) (0, 0)
+    testPointCalc
+      (1, [ 100; 101; 104; 105 ], [ (2, 21); (20, 21); (24, 21) ], 102, false, false, false, 2, false, true)
+      ([ 40; 41; 42; 43; 106 ], [ 92; 93; 94; 95; 107 ]) (0, 0)
+    testPointCalc
+      (1, [ 44; 68; 72; 76 ], [ (20, 21); (22, 21); (24, 21) ], 45, true, false, true, 1, false, true)
+      ([ 104; 105; 106; 107 ], [ 92; 93; 94; 95 ]) (0, 0)
+    testPointCalc
+      (2, [ 13; 14; 17; 18; 21; 22; 24; 27; 29; 30; 33; 34; 37 ], [ ], 38, true, false, false, 1, true, true)
+      ([ 8; 9; 10; 11 ], [ 15; 16; 19; 20 ]) (1, 4)
+    testPointCalc
+      (3, [ 76 ], [ (20, 23); (22, 23); (25, 23); (26, 53) ], 79, false, false, true, 0, true, true)
+      ([ 92; 93; 94; 95 ], [ 86; 87; 104; 105 ]) (0, 0)
+    ()
     (*
-    let testWinningHand handName argIn =
-      printfn "Check %s:" handName
-      if (hands.IsThisHand handName argIn) then (printfn "OK\n") else (printfn "Error\n")
-    printfn "Debugging limit hands...\n"
-    testWinningHand "Thirteen Orphans | 13-tile Wait"
-      ([| 0; 4; 8; 40; 44; 76; 80; 84; 88; 92; 96; 100; 104 |], [ ], 1, false, false)
-    testWinningHand "Pure Nine Gates"
-      ([| 8; 9; 10; 12; 16; 20; 24; 28; 32; 36; 40; 41; 42 |], [ ], 11, false, false)
-    testWinningHand "Big Four Winds"
-      ([| 80; 81; 82; 84; 85; 86; 88; 89; 90; 92; 93; 94; 96 |], [ ], 97, false, false)
-    testWinningHand "Four Concealed Triplets | Single Wait"
-      ([| 80; 81; 82; 84; 96; 97; 98; 100; 101; 102; 104; 105; 106 |], [ ], 87, false, false)
     testWinningHand "Thirteen Orphans"
       ([| 4; 8; 40; 44; 76; 80; 84; 88; 92; 96; 100; 104; 105 |], [ ], 0, false, false)
     testWinningHand "Nine Gates"
@@ -381,27 +425,10 @@ type Mahjong (userPos) =
       ([| 0; 1; 8; 13; 18; 104; 105 |], [ (24, 44); (25, 47) ], 106, false, false)
     testWinningHand "Small Four Winds"
       ([| 80; 81; 82; 84; 85; 86; 88 |], [ (0, 47); (23, 44) ], 91, false, false)
-    testWinningHand "All Terminals"
-      ([| 0; 1; 2; 4; 5; 6; 8; 9; 10; 40; 41; 42; 44 |], [ ], 45, false, false)
-    testWinningHand "All Honors"
-      ([| 80; 81; 84; 85; 88; 89; 92; 93; 96; 97; 100; 101; 104 |], [ ], 105, false, false)
-    testWinningHand "Four Concealed Triplets"
-      ([| 80; 81; 82; 84; 85; 86; 88; 89; 90; 92; 93; 96; 97 |], [ ], 94, true, false)
-    testWinningHand "Four Quads"
-      ([| 96 |], [ (20, 21); (21, 34); (22, 44); (23, 47) ], 97, false, false)
-    printfn "Debugging normal hands...\n"
-    testWinningHand "Perfect Flush"
-      ([| 48; 49; 52; 53; 56; 57; 60; 64; 65; 68; 69; 72; 73 |], [ ], 61, false, false)
-    testWinningHand "All Terminals and Honors"
-      ([| 0; 1; 2; 4; 5; 6; 96; 97; 100; 101; 104; 105; 106 |], [ ], 98, false, false)
     testWinningHand "Perfect Ends"
       ([| 6; 8; 9; 12; 13; 16; 17; 32; 33; 36; 37; 40; 41 |], [ ], 7, false, false)
     testWinningHand "Double Identical Sequences"
       ([| 48; 49; 52; 53; 56; 57; 60; 64; 65; 68; 69; 72; 73 |], [ ], 61, false, false)
-    testWinningHand "Common Flush"
-      ([| 48; 49; 52; 53; 56; 57; 64; 65; 68; 69; 72; 73; 96 |], [ ], 99, false, false)
-    testWinningHand "Seven Pairs"
-      ([| 12; 13; 16; 17; 20; 21; 24; 28; 29; 32; 33; 36; 37 |], [ ], 25, false, false)
     testWinningHand "Full Straight"
       ([| 0; 3; 44; 48; 52; 56; 64; 68; 72; 76 |], [ (20, 34) ], 63, false, false)
     testWinningHand "Three Mixed Triplets"
@@ -410,12 +437,4 @@ type Mahjong (userPos) =
       ([| 6; 8; 9; 12; 13; 16; 17; 32; 37; 42 |], [ (24, 34) ], 7, false, false)
     testWinningHand "Little Three Dragons"
       ([| 12; 16; 20; 100; 101; 102; 106 |], [ (1, 34); (24, 37) ], 107, false, false)
-    testWinningHand "All Triplets"
-      ([| 12; 13; 14; 16; 17; 18; 24; 32; 33; 34; 36; 37; 38 |], [ ], 25, false, false)
-    testWinningHand "Three Concealed Triplets"
-      ([| 80; 81; 82; 84; 85; 86; 88; 89; 96; 97 |], [ (23, 34) ], 91, true, false)
-    testWinningHand "Three Quads"
-      ([| 0; 1; 96; 99 |], [ (20, 21); (21, 34); (22, 44) ], 97, false, false)
     *)
-    printfn "Debug mode is temporaily disabled"
-    ()

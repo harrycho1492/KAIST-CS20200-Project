@@ -2,8 +2,7 @@ namespace TermProject
 
 type SpecialWinningHand (name, tileCondition, points) =
   member __.Name = name
-  member __.IsSatisfied handTileList finalTile =
-    tileCondition handTileList finalTile
+  member __.IsSatisfied handTileList finalTile = tileCondition handTileList finalTile
   member __.Points = points
 
 type SituationWinningHand (name, condition, pointsOpen, pointsClosed) =
@@ -11,16 +10,14 @@ type SituationWinningHand (name, condition, pointsOpen, pointsClosed) =
   member __.IsSatisfied player isDrawn isFirstRound isQuad isReady inOneTurn isLastTile hasCalledOpen =
     ((pointsOpen > 0) || (not hasCalledOpen))
       && (condition player isDrawn isFirstRound isQuad isReady inOneTurn isLastTile)
-  member __.Points hasCalledOpen =
-    if (hasCalledOpen) then (pointsOpen) else (pointsClosed)
+  member __.Points hasCalledOpen = if (hasCalledOpen) then (pointsOpen) else (pointsClosed)
 
 type WinningHand (name, tileCondition, pointsOpen, pointsClosed, incompatible) =
   member __.Name = name
   member __.IsSatisfied player tileBuild meldList finalTile isDrawn hasCalledOpen =
     ((pointsOpen > 0) || (not hasCalledOpen))
       && (tileCondition player tileBuild meldList finalTile isDrawn)
-  member __.Points hasCalledOpen =
-    if (hasCalledOpen) then (pointsOpen) else (pointsClosed)
+  member __.Points hasCalledOpen = if (hasCalledOpen) then (pointsOpen) else (pointsClosed)
   member __.Incompatible = incompatible
 
 type WinningHands () =
@@ -44,9 +41,11 @@ type WinningHands () =
     | x when (not (x % 3 = minN % 3)) || (x < minN) -> [ ]
     | x when x = minN ->
       let currTile = tileList.Head / 4
-      // Case 1: This tile is pair
-      let try1 =
-        if ((numPair > 0) && (currTile = tileList.Tail.Head / 4)) then (
+      let try1 =   // Case 1: This tile is pair
+        if (
+          (numPair > 0) && (currTile = tileList.Tail.Head / 4)
+            && ((minN = 2) || (not (currTile = tileList.Tail.Tail.Head / 4)))
+        ) then (
           if (minN = 2) then ( [ [ (false, currTile, 2) ] ] ) else (
             let temp = tryBuild tileList.Tail.Tail false false (numPair - 1) numOrphan
             if (List.length temp = 0) then ( [ ] ) else (
@@ -54,8 +53,7 @@ type WinningHands () =
             )
           )
         ) else ( [ ] )
-      // Case 2: This tile is orphan
-      let try2 =
+      let try2 =   // Case 2: This tile is orphan
         if (numOrphan > 0) then (
           if (minN = 1) then ( [ [ (false, currTile, 1) ] ] ) else (
             let temp = tryBuild tileList.Tail false false numPair (numOrphan - 1)
@@ -68,8 +66,7 @@ type WinningHands () =
     | x ->
       let currTile = tileList.Head / 4
       let nextList = tileList.Tail
-      // Case 1: This tile is triplet
-      let try1 =
+      let try1 =   // Case 1: This tile is triplet
         if (
           doTriplet && (currTile = nextList.Head / 4) && (currTile = nextList.Tail.Head / 4)
         ) then (
@@ -80,8 +77,7 @@ type WinningHands () =
             )
           )
         ) else ( [ ] )
-      // Case 2: This tile is sequence
-      let try2 =
+      let try2 =   // Case 2: This tile is sequence
         if (
           (
             doSequence
@@ -102,19 +98,17 @@ type WinningHands () =
             )
           )
         ) else ( [ ] )
-      // Case 3: This tile is pair
-      let try3 =
+      let try3 =   // Case 3: This tile is pair
         if (
           (numPair > 0) && (currTile = tileList.Tail.Head / 4)
-            && (not (currTile = tileList.Tail.Tail.Head))
+            && (not (currTile = tileList.Tail.Tail.Head / 4))
         ) then (
           let temp = tryBuild tileList.Tail.Tail doTriplet doSequence (numPair - 1) numOrphan
           if (List.length temp = 0) then ( [ ] ) else (
             List.map (fun x -> List.append [ (false, currTile, 2) ] x) temp
           )
         ) else ( [ ] )
-      // Case 4: This tile is orphan
-      let try4 =
+      let try4 =   // Case 4: This tile is orphan
         if (numOrphan > 0) then (
           let temp = tryBuild tileList.Tail doTriplet doSequence numPair (numOrphan - 1)
           if (List.length temp = 0) then ( [ ] ) else (
@@ -222,14 +216,15 @@ type WinningHands () =
       "All Honors",
       (
         fun player tileBuild meldList finalTile isDrawn ->
-          List.forall (
-            fun (b, t, n) -> (not b) && (List.contains t honorTiles) && ((n = 2) || (n = 3))
-          ) tileBuild
+          (List.forall (fun (t, _) -> List.contains t honorTiles) meldList) && (
+            List.forall (
+              fun (b, t, n) -> (not b) && (List.contains t honorTiles) && ((n = 2) || (n = 3))
+            ) tileBuild
+          )
       ),
       1, 1, [ ]
     )
   ]
-  // TBA - to be edited for new system
   let standardLimitHands = [
     WinningHand (
       "Big Four Winds",
@@ -247,7 +242,7 @@ type WinningHands () =
       "Four Concealed Triplets | Single Wait",
       (
         fun player tileBuild meldList finalTile isDrawn ->
-          ((List.length meldList = 0) || (List.forall (fun (_, y) -> List.contains y [ 21..23 ] ) meldList))
+          ((List.length meldList = 0) || (List.forall (fun (_, y) -> y = 20 + player) meldList))
             && (List.forall (fun (b, t, n) -> (not b) && ((n = 2) || (n = 3))) tileBuild)
             && (List.exists (fun (b, t, n) -> (not b) && (t = finalTile / 4) && (n = 2)) tileBuild)
       ),
@@ -308,7 +303,7 @@ type WinningHands () =
       (
         fun player tileBuild meldList finalTile isDrawn ->
           (isDrawn) && (List.forall (fun (b, t, n) -> (not b) && ((n = 2) || (n = 3))) tileBuild) && (
-            (List.length meldList = 0) || (List.forall (fun (_, y) -> List.contains y [ 21..23 ]) meldList)
+            (List.length meldList = 0) || (List.forall (fun (_, y) -> y = 20 + player) meldList)
           ) && (List.exists (fun (b, t, n) -> (not b) && (t = finalTile / 4) && (n = 3)) tileBuild)
       ),
       0, 1, [ ]
@@ -331,7 +326,7 @@ type WinningHands () =
         fun player isDrawn isFirstRound isQuad isReady inOneTurn isLastTile ->
           isReady = 2
       ),
-      0, 1
+      0, 2
     );
     SituationWinningHand (
       "Ready",
@@ -478,7 +473,6 @@ type WinningHands () =
       1, 1, [ ]
     )
   ]
-  // TBA - to be edited for new system
   let standardNormalHands = [
     WinningHand (
       "Perfect Ends",
@@ -574,24 +568,21 @@ type WinningHands () =
       "Three Concealed Triplets",
       (
         fun player tileBuild meldList finalTile isDrawn ->
-          // TBA
-          (List.length meldList < 2) && (
-            (
-              (isDrawn) && (
-                List.fold (
-                  fun x y ->
-                    let (b, t, n) = y
-                    if ((not b) && (n = 3)) then (x + 1) else (x)
-                ) 0 tileBuild = 3
-              )
-            ) || (
-              (not isDrawn) && (
-                List.fold (
-                  fun x y ->
-                    let (b, t, n) = y
-                    if ((not b) && (not (t = finalTile / 4)) && (n = 3)) then (x + 1) else (x)
-                ) 0 tileBuild = 3
-              )
+          let meldCount =
+            List.fold (fun x (_, z) -> if (z = 20 + player) then (x + 1) else (x)) 0 meldList
+          (
+            (isDrawn) && (
+              List.fold (
+                fun x (b, t, n) ->
+                  if ((not b) && (n = 3)) then (x + 1) else (x)
+              ) 0 tileBuild + meldCount = 3
+            )
+          ) || (
+            (not isDrawn) && (
+              List.fold (
+                fun x (b, t, n) ->
+                  if ((not b) && (not (t = finalTile / 4)) && (n = 3)) then (x + 1) else (x)
+              ) 0 tileBuild + meldCount = 3
             )
           )
       ),
@@ -610,7 +601,7 @@ type WinningHands () =
       "Basic Hand",
       (
         fun player tileBuild meldList finalTile isDrawn ->
-          (
+          (List.length meldList = 0) && (
             List.forall (
               fun (b, t, n) ->
               ((b) && (n = 3)) || (
@@ -730,6 +721,13 @@ type WinningHands () =
       (List.append canSevenPairNormalHands standardNormalHands)
 
   // helper functions
+  let countApplicable target arg13 arg2 =
+    (List.fold (fun a b -> if (b / 4 = target) then (a + 1) else (a)) 0 arg13) + (
+      List.fold (
+        fun a (b, c) ->
+          if (b = target) then (a + (if (isQuad c) then (4) else (3))) else (a)
+      ) 0 arg2
+    )
   let hasCalledOpen arg0 arg2 = not (List.forall (fun (_, y) -> y = 20 + arg0) arg2)
   let isWinning argIn =
     let (arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) = argIn
@@ -768,7 +766,7 @@ type WinningHands () =
   // player handTileList meldList finalTile isDrawn isFirstRound isQuad isReady inOneTurn isLastTile
   // [0]    [1]          [2]      [3]       [4]     [5]          [6]    [7]     [8]       [9]
 
-  // win check for specific hand
+  /// Win check for specific hand
   member __.IsThisHand handName argIn =
     let (arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) = argIn
     let arg10 = hasCalledOpen arg0 arg2
@@ -826,7 +824,7 @@ type WinningHands () =
   member __.CanDeclareReady argIn =
     let (arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) = argIn
     let test13Tiles newList =
-      List.exists (
+      List.filter (
         fun x ->
           let temp = List.sort (List.append newList [ x ])
           (
@@ -836,28 +834,27 @@ type WinningHands () =
             || (List.length (tryBuild temp true  true  1 0) > 0)
       ) [ for i in 0..26 -> (4 * i + 3) ]
     let candidates =
-      List.filter (
+      List.map (
         fun x ->
           let newList =
             List.append
               (List.map (fun (_, z) -> z) (List.filter (fun (y, _) -> not (y = x)) (List.indexed arg1)))
               [ arg3 ]
-          test13Tiles newList
+          (x, test13Tiles newList)
       ) [ 0..(List.length arg1 - 1) ]
-    if (test13Tiles arg1) then (List.append candidates [ 13 ]) else (candidates)
+      |> List.filter (fun (x, l) -> List.length l > 0)
+    let testFinal = test13Tiles arg1
+    if (List.length testFinal > 0) then (List.append candidates [ (13, testFinal) ]) else (candidates)
   
-  /// Check if one more tile can directly let you win
+  /// Check if one more tile can directly let you win - called for when not ready
   member __.IsOneAway argIn =
-    () // TBA
-    (*
-    let (arg0, arg1, arg2, arg5, arg6, arg7, arg8, arg9) = argIn
-    List.exists (
-      fun x -> isWinning (arg0, arg1, arg2, x, true, arg5, arg6, arg7, arg8, arg9)
-    ) [ for i in 0..26 -> (4 * i + 3) ]
-    *)
+    let (arg0, arg1, arg2, _, _, arg5, arg6, arg7, arg8, arg9) = argIn
+    List.filter (
+      fun x -> isWinning (arg0, arg1, arg2, (4 * x + 3), false, arg5, arg6, arg7, arg8, arg9)
+    ) [ 0..26 ]
   
   /// Calculate points
-  member __.GetPoints argIn bonusTiles =
+  member __.GetPoints argIn bonusTiles redAndNorthBonus =
     let (arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) = argIn
     let arg10 = hasCalledOpen arg0 arg2
     let (defaultBonus, hiddenBonus) = bonusTiles
@@ -882,8 +879,7 @@ type WinningHands () =
             ) else (x)
         ) (0, [ ], [ ]) handList
       (temp1, temp2)
-    // Try Blessing series
-    let tryBlessing =
+    let tryBlessing =   // Try Blessing series
       if (
         (situationLimitHands.Head).IsSatisfied arg0 arg4 arg5 arg6 arg7 arg8 arg9 arg10
       ) then (1) else (
@@ -941,7 +937,7 @@ type WinningHands () =
       if (buildSuccess1 || buildSuccess2)
         then ( [ insertBlessing (0, [ ]) ] ) else ( [ ] )
     let allLimitTries = List.append (List.append (List.append try1 try2) (List.append try3 try4)) try5
-    if ((List.length allLimitTries > 0) && (List.forall (fun (p, _) -> p > 0) allLimitTries)) then (
+    if (List.exists (fun (p, _) -> p > 0) allLimitTries) then (
       let (finalPoint, finalList) =
         List.fold (
           fun x y -> 
@@ -950,8 +946,7 @@ type WinningHands () =
             if (points2 > points1) then (y) else (x)
         ) (0, [ ]) allLimitTries
       (true, finalPoint, finalList)
-    ) else (
-      // Try normal hands
+    ) else (   // Try normal hands
       let trySituationNormalHands =
         List.fold (
           fun x (y: SituationWinningHand) ->
@@ -991,7 +986,7 @@ type WinningHands () =
         if (buildSuccess1 || buildSuccess2)
           then ( [ insertSituationNormalHands (0, [ ]) ] ) else ( [ ] )
       let allNormalTries = List.append (List.append try6 try7) try8
-      if (List.length allNormalTries > 0) then (
+      if (List.exists (fun (p, _) -> p > 0) allNormalTries) then (
         let (finalPoint, finalList) =
           List.fold (
             fun x y ->
@@ -999,32 +994,48 @@ type WinningHands () =
               let (points2, _) = y
               if (points2 > points1) then (y) else (x)
           ) (0, [ ]) allNormalTries
-        let redBonusPoint =
-          List.fold (fun x y -> if ((y = 24) || (y = 60)) then (x + 1) else (x)) 0 arg1
+        let arg13 = List.append arg1 [ arg3 ]
+        let (redBonusPoint, northBonusPoint) = redAndNorthBonus
         let bonusList1 =
           if (redBonusPoint > 0)
-            then (List.append finalList [ (redBonusPoint, "Red 5 Tiles") ])
-            else (finalList)
+            then (List.append finalList [ (redBonusPoint, "Red 5 Tiles") ]) else (finalList)
+        let bonusList2 =
+          if (northBonusPoint > 0)
+            then (List.append bonusList1 [ (northBonusPoint, "North Tiles Put Aside") ]) else (bonusList1)
         let defaultBonusPoint =
           List.fold (
             fun x y ->
-              x + List.fold (fun a b -> if (b / 4 = (y / 4) + 1) then (a + 1) else (a)) 0 arg1
+              match (y / 4) with
+              |  1 -> x + countApplicable  0 arg13 arg2
+              | 10 -> x + countApplicable  2 arg13 arg2
+              | 19 -> x + countApplicable 11 arg13 arg2
+              | 23 -> x + countApplicable 20 arg13 arg2
+              | 26 -> x + countApplicable 24 arg13 arg2
+              |  z -> x + countApplicable (z + 1) arg13 arg2
           ) 0 defaultBonus
-        let bonusList2 =
+        let bonusList3 =
           if (defaultBonusPoint > 0)
-            then (List.append bonusList1 [ (defaultBonusPoint, "Bonus Tiles") ])
-            else (bonusList1)
+            then (List.append bonusList2 [ (defaultBonusPoint, "Bonus Tiles") ]) else (bonusList2)
         let hiddenBonusPoint =
           if (arg7 > 0) then (
             List.fold (
               fun x y ->
-                x + List.fold (fun a b -> if (b / 4 = (y / 4) + 1) then (a + 1) else (a)) 0 arg1
+                match (y / 4) with
+                |  1 -> x + countApplicable  0 arg13 arg2
+                | 10 -> x + countApplicable  2 arg13 arg2
+                | 19 -> x + countApplicable 11 arg13 arg2
+                | 23 -> x + countApplicable 20 arg13 arg2
+                | 26 -> x + countApplicable 24 arg13 arg2
+                |  z -> x + countApplicable (z + 1) arg13 arg2
             ) 0 hiddenBonus
           ) else (0)
-        let bonusList3 =
+        let bonusList4 =
           if (hiddenBonusPoint > 0)
-            then (List.append bonusList2 [ (hiddenBonusPoint, "Hidden Bonus Tiles") ])
-            else (bonusList2)
-        (false, finalPoint + redBonusPoint + defaultBonusPoint + hiddenBonusPoint, bonusList3)
+            then (List.append bonusList3 [ (hiddenBonusPoint, "Hidden Bonus Tiles") ]) else (bonusList3)
+        (
+          false,
+          finalPoint + redBonusPoint + northBonusPoint + defaultBonusPoint + hiddenBonusPoint,
+          bonusList4
+        )
       ) else (false, 0, [ ])
     )

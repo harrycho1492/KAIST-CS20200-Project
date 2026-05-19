@@ -5,20 +5,22 @@ type Player (playerIsUser) =
   let rand = System.Random ()
   // Player states
   let mutable hasDeclaredReady = 0
+  let mutable inOneTurn        = false
   let mutable hasTempPenalty   = 0
 
   member __.IsUser () = playerIsUser
 
   member __.IsReady () = hasDeclaredReady
-
   member __.DeclareReady isFirstRound =
-    if (isFirstRound) then (hasDeclaredReady <- 2;) else (hasDeclaredReady <- 1;)
+    if (isFirstRound) then (hasDeclaredReady <- 2; inOneTurn <- true;)
+      else (hasDeclaredReady <- 1; inOneTurn <- true;)
+
+  member __.InOneTurn    () = inOneTurn
+  member __.EndOneTurn   () = inOneTurn <- false;
 
   member __.HasTempPenalty () = hasTempPenalty > 0
-
   member __.GivePenalty () =
     if (hasDeclaredReady > 0) then (hasTempPenalty <- 2;) else (hasTempPenalty <- 1;)
-
   member __.RemovePenalty () =
     if (hasTempPenalty < 2) then (hasTempPenalty <- 0;)
 
@@ -27,7 +29,7 @@ type Player (playerIsUser) =
     if (
       (isReady) && (not isWinning) && (not canMakeQuad) && (not has4zTile) && (not canAbort)
     ) then (
-      printfn "Automatically discarding drawn tile...\n"; 13
+      if (playerIsUser) then (printfn "Automatically discarding drawn tile...\n"; 13) else (13)
     ) else (
       if (playerIsUser) then (
         let rec getSelection () =
@@ -88,16 +90,42 @@ type Player (playerIsUser) =
           | _ -> failwith "Fatal error"
       )
     )
+  
+  member __.SelectReadyOption readyOpt =
+    if (playerIsUser) then (
+      let rec getSelection () =
+        let checkAndReturn n =
+          if (List.contains n readyOpt) then (printfn ""; n)
+            else (printfn "\n[*] Invalid option.\n"; getSelection ())
+        printfn "Select the tile to discard:"
+        System.Console.Write "> "
+        match System.Console.ReadLine () with
+        | "01" | "1" -> checkAndReturn 0
+        | "02" | "2" -> checkAndReturn 1
+        | "03" | "3" -> checkAndReturn 2
+        | "04" | "4" -> checkAndReturn 3
+        | "05" | "5" -> checkAndReturn 4
+        | "06" | "6" -> checkAndReturn 5
+        | "07" | "7" -> checkAndReturn 6
+        | "08" | "8" -> checkAndReturn 7
+        | "09" | "9" -> checkAndReturn 8
+        | "10"       -> checkAndReturn 9
+        | "11"       -> checkAndReturn 10
+        | "12"       -> checkAndReturn 11
+        | "13"       -> checkAndReturn 12
+        | "14"       -> checkAndReturn 13
+        | _ -> printfn "\n[*] Invalid option.\n"; getSelection ()
+      getSelection ()
+    ) else (
+      (List.item (rand.Next (0, List.length readyOpt)) readyOpt)
+    )
     
   member __.SelectQuadOption length =
     if (playerIsUser) then (
       let rec getSelection () =
         let checkAndReturn n =
-          if (n > (length - 1)) then (
-            printfn "\n[*] Invalid option.\n"; getSelection ()
-          ) else (
-            printfn ""; n
-          )
+          if (n > (length - 1)) then (printfn "\n[*] Invalid option.\n"; getSelection ())
+            else (printfn ""; n)
         printfn "Select the tile to meld:"
         System.Console.Write "> "
         match System.Console.ReadLine () with
