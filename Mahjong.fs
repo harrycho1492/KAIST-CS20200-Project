@@ -314,8 +314,8 @@ type Mahjong (userPos) =
               then (status.DiscardTile arg3 turn)
               else (status.DiscardTile arg1[readySelection] turn)
           players[turn - 1].DeclareReady isFirstRound
-          printfn "Player %d has discarded: %s\n" turn discadedTileName
-          printfn "Player %d has declared ready!" turn
+          printfn "Player %d has discarded: %s" turn discadedTileName
+          printfn "Player %d has declared ready!\n" turn
           status.SetTile turn
           handleReaction turn discardedTile 0 false
         | _ -> failwith "Fatal error"

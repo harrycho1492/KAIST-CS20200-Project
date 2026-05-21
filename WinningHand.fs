@@ -21,8 +21,7 @@ type WinningHand (name, tileCondition, pointsOpen, pointsClosed, incompatible) =
   member __.Incompatible = incompatible
 
 type WinningHands () =
-  let countTile n =
-    fun x y -> if ((y / 4) = n) then (x + 1) else (x)
+  let countTile n = (fun x y -> if ((y / 4) = n) then (x + 1) else (x))
   let letterTiles = [ 0; 1 ]
   let circleTiles = [  2..10 ]
   let bambooTiles = [ 11..19 ]
@@ -838,8 +837,7 @@ type WinningHands () =
         fun x ->
           let newList =
             List.append
-              (List.map (fun (_, z) -> z) (List.filter (fun (y, _) -> not (y = x)) (List.indexed arg1)))
-              [ arg3 ]
+              (List.map (fun (_, z) -> z) (List.filter (fun (y, _) -> not (y = x)) (List.indexed arg1))) [ arg3 ]
           (x, test13Tiles newList)
       ) [ 0..(List.length arg1 - 1) ]
       |> List.filter (fun (x, l) -> List.length l > 0)
@@ -1002,32 +1000,22 @@ type WinningHands () =
         let bonusList2 =
           if (northBonusPoint > 0)
             then (List.append bonusList1 [ (northBonusPoint, "North Tiles Put Aside") ]) else (bonusList1)
+        let bonusHelp x y =
+          match (y / 4) with
+          |  1 -> x + countApplicable  0 arg13 arg2
+          | 10 -> x + countApplicable  2 arg13 arg2
+          | 19 -> x + countApplicable 11 arg13 arg2
+          | 23 -> x + countApplicable 20 arg13 arg2
+          | 26 -> x + countApplicable 24 arg13 arg2
+          |  z -> x + countApplicable (z + 1) arg13 arg2
         let defaultBonusPoint =
-          List.fold (
-            fun x y ->
-              match (y / 4) with
-              |  1 -> x + countApplicable  0 arg13 arg2
-              | 10 -> x + countApplicable  2 arg13 arg2
-              | 19 -> x + countApplicable 11 arg13 arg2
-              | 23 -> x + countApplicable 20 arg13 arg2
-              | 26 -> x + countApplicable 24 arg13 arg2
-              |  z -> x + countApplicable (z + 1) arg13 arg2
-          ) 0 defaultBonus
+          List.fold bonusHelp 0 defaultBonus
         let bonusList3 =
           if (defaultBonusPoint > 0)
             then (List.append bonusList2 [ (defaultBonusPoint, "Bonus Tiles") ]) else (bonusList2)
         let hiddenBonusPoint =
           if (arg7 > 0) then (
-            List.fold (
-              fun x y ->
-                match (y / 4) with
-                |  1 -> x + countApplicable  0 arg13 arg2
-                | 10 -> x + countApplicable  2 arg13 arg2
-                | 19 -> x + countApplicable 11 arg13 arg2
-                | 23 -> x + countApplicable 20 arg13 arg2
-                | 26 -> x + countApplicable 24 arg13 arg2
-                |  z -> x + countApplicable (z + 1) arg13 arg2
-            ) 0 hiddenBonus
+            List.fold bonusHelp 0 hiddenBonus
           ) else (0)
         let bonusList4 =
           if (hiddenBonusPoint > 0)
