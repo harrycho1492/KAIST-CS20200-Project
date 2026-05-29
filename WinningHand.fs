@@ -825,13 +825,13 @@ type WinningHands () =
     let test13Tiles newList =
       List.filter (
         fun x ->
-          let temp = List.sort (List.append newList [ x ])
+          let temp = List.sort (List.append newList [ (4 * x + 3) ])
           (
             (List.length arg2 = 0)
-              && (List.exists (fun (x: SpecialWinningHand) -> x.IsSatisfied newList arg3) typeAHands)
+              && (List.exists (fun (y: SpecialWinningHand) -> y.IsSatisfied newList arg3) typeAHands)
           ) || (List.length (tryBuild temp false false 7 0) > 0)
             || (List.length (tryBuild temp true  true  1 0) > 0)
-      ) [ for i in 0..26 -> (4 * i + 3) ]
+      ) [ 0..26 ]
     let candidates =
       List.map (
         fun x ->

@@ -13,8 +13,7 @@ let rec gameInit () =
   | "2" | "02" -> printfn ""; Mahjong(2).Run(); gameInit ()
   | "3" | "03" -> printfn ""; Mahjong(3).Run(); gameInit ()
   | "4" | "04" -> 0
-  // Secret keyword for debugging
-  | "x"        -> printfn ""; Mahjong(0).RunDebug(); 0
+  | "x"        -> printfn ""; Mahjong(0).RunDebug(); 0   // Secret keyword for debugging
   | _ -> printfn "\n[*] Invalid option.\n"; gameInit ()
 
 [<EntryPoint>]
