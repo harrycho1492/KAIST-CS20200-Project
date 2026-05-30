@@ -102,8 +102,6 @@ type GameStatus () =
     let ta = Array.map (fun (x, _) -> x) (filteredTiles (fun (_, y) -> y = na))
     let tb = Array.map (fun (x, _) -> x) (filteredTiles (fun (_, y) -> y = nb))
     if ((not ((Array.length ta) % 3 = 0)) || (not ((Array.length ta) % 3 = 0))) then (
-      printfn "%A" ta
-      printfn "%A" tb
       failwith "Fatal error"
     ) else (
       Array.append
@@ -117,6 +115,10 @@ type GameStatus () =
     match Array.tryFindIndex ((=) (13 + n)) tiles with
     | Some x ->  x
     | None   -> -1
+  let getDiscardedTiles n =
+    match discardedTiles n with
+    | 0 -> []
+    | x -> List.map (fun x -> Array.findIndex ((=) (n * 100 + x)) tiles) [ 1..x ]
   let displayTiles list =
     if (List.length list > 0) then (List.fold (fun x y -> x + " | " + y) list.Head list.Tail) else ("")
   let displayBonusTiles n =
@@ -152,7 +154,6 @@ type GameStatus () =
         printfn "14\n"
       ) else (printfn "")
   let displayMeldTiles n =
-    assertVaildPlayer n
     let mt = getMeldTiles n
     match List.length mt with
     | 0 -> printfn "None\n"
@@ -174,13 +175,9 @@ type GameStatus () =
           | _ -> failwith "Fatal error"
       ) mt) |> ignore; printfn ""
   let displayDiscardedTiles n =
-    assertVaildPlayer n
-    match discardedTiles n with
-    | 0 -> printfn "None\n"
-    | x ->
-      printfn "\n%s\n" (displayTiles (
-        List.map (fun x -> tileNotation (Array.findIndex ((=) (n * 100 + x)) tiles)) [ 1..x ]
-      ))
+    let tl = getDiscardedTiles n
+    if (List.length tl = 0) then (printfn "None\n")
+      else (printfn "\n%s\n" (displayTiles (List.map (fun x -> tileNotation x) tl)))
   let count4zTile n = countTiles ((=) (16 + n)) tiles[ 92..95 ]
 
   member __.Init () =
@@ -340,6 +337,18 @@ type GameStatus () =
         countTiles
           (fun y -> (y = 10 + viewPoint) || (y = 13 + viewPoint) || (y > 16))
           (tiles[ (4 * x)..(4 * x + 3) ])
+    ) [ 0..26 ]
+
+  member __.GetDiscardedTiles viewPoint =
+    let (n1,  n2)  = (viewPoint % 3 + 1, (viewPoint + 1) % 3 + 1)
+    let (tl1, tl2) = (getDiscardedTiles n1, getDiscardedTiles n2)
+    List.map (
+      fun x ->
+        let (tmp1, tmp2) = (List.exists (fun y -> y / 4 = x) tl1, List.exists (fun y -> y / 4 = x) tl2)
+        match (tmp1, tmp2) with
+        | (true,  true)                  -> 2
+        | (true,  false) | (false, true) -> 1
+        | (false, false)                 -> 0
     ) [ 0..26 ]
   
   member __.BonusTiles () =

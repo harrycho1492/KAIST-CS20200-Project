@@ -46,7 +46,7 @@ type Mahjong (userPos) =
           let redAndNorthBonus2 = status.RedAndNorthBonus n2
           let (isLimit2, points2, handList2) =
             hands.GetPoints (infoList.Tail.Head) bonusTiles redAndNorthBonus2
-          printfn "Player %d and %d has both won by discard!\n" n1 n2
+          printfn "Player %d and %d have both won by discard!\n" n1 n2
           status.DisplayWin n1arg1 n1arg2 n1arg3 n1arg7 bonusTiles
           printResult isLimit1 points1 handList1
           status.DisplayWin n2arg1 n2arg2 n2arg3 n2arg7 bonusTiles
@@ -81,6 +81,7 @@ type Mahjong (userPos) =
           let nextMove =
             players[n - 1].DoDiscard
               newHand (newHandInfo, (status.BonusTiles ()), (status.GetDisclosedTiles n))
+              (status.GetDiscardedTiles n)
           let (discardedTile, discadedTileName) = status.DiscardTile newHand[nextMove] n
           printfn "Player %d has discarded: %s\n" n discadedTileName
           handleReaction n discardedTile 0 false
@@ -186,6 +187,7 @@ type Mahjong (userPos) =
             ) then (
               players[np1 - 1].DoTri actionPlayer
                 (handInfo1, (status.BonusTiles ()), (status.GetDisclosedTiles np1))
+                (status.GetDiscardedTiles np1)
             ) else (false)
           let tri2 =
             if (
@@ -194,6 +196,7 @@ type Mahjong (userPos) =
             ) then (
               players[np2 - 1].DoTri actionPlayer
                 (handInfo2, (status.BonusTiles ()), (status.GetDisclosedTiles np2))
+                (status.GetDiscardedTiles np2)
             ) else (false)
           match (win1, win2, quad1, quad2, tri1, tri2) with
           | (true,  true,  _,     _,     _,     _)     ->
@@ -286,34 +289,34 @@ type Mahjong (userPos) =
       if (shouldIncrementQuad) then (status.IncrementQuad ())
       if (players[turn - 1].InOneTurn ()) then (players[turn - 1].EndOneTurn ())
       let nextMove =
-        players[turn - 1].NextMove
-          (List.length arg1 - 1) isWinning isReady canReady quadOption canPutAside4zTile
-          canAbort (handInfo, (status.BonusTiles ()), (status.GetDisclosedTiles turn))
+        players[turn - 1].NextMove (List.length arg1 - 1)
+          (isWinning, isReady, canReady, quadOption, canPutAside4zTile, canAbort)
+          (handInfo, (status.BonusTiles ()), (status.GetDisclosedTiles turn))
+          (status.GetDiscardedTiles turn)
       match nextMove with
       | 14 -> handleWin [ handInfo ]
       | 15 ->
+        let commonAction (discTile, discTileName) =
+          players[turn - 1].DeclareReady isFirstRound
+          printfn "Player %d has discarded: %s" turn discTileName
+          printfn "Player %d has declared ready!\n" turn
+          status.SetTile turn
+          handleReaction turn discTile 0 false
+
         match List.length readyOpt with
         | 1 ->
           let (target, _) = readyOpt.Head
-          let (discardedTile, discadedTileName) =
+          commonAction (
             if (target = 13) then (status.DiscardTile arg3 turn)
               else (status.DiscardTile arg1[target] turn)
-          players[turn - 1].DeclareReady isFirstRound
-          printfn "Player %d has discarded: %s" turn discadedTileName
-          printfn "Player %d has declared ready!\n" turn
-          status.SetTile turn
-          handleReaction turn discardedTile 0 false
+          )
         | x when (x > 1) ->
           let readySelection =
             players[turn - 1].SelectReadyOption readyOpt (status.GetDisclosedTiles turn)
-          let (discardedTile, discadedTileName) =
+          commonAction (
             if (readySelection = 13) then (status.DiscardTile arg3 turn)
               else (status.DiscardTile arg1[readySelection] turn)
-          players[turn - 1].DeclareReady isFirstRound
-          printfn "Player %d has discarded: %s" turn discadedTileName
-          printfn "Player %d has declared ready!\n" turn
-          status.SetTile turn
-          handleReaction turn discardedTile 0 false
+          )
         | _ -> failwith "Fatal error"
       | 16 ->
         let ((meldedTile, meldedTileName), isAddedQuad) =

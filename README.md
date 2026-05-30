@@ -35,7 +35,7 @@ This project aims to implement a single round of 3-person Japanese Mahjong in co
   - Declaring ready lets you open the hidden bonus tiles when calculating your score.
   - After you declare ready, you can only declare victory, make a closed quad - but only if such action does not change the list of tile you are waiting for, put aside a North (`4z`) tile, or discard the tile you have just drawn. If the first three options are not available, the system automatically discards the tile for you.
 - There are 3 situations when you are prohibited from winning by discard.
-  - Temporary penalty: When you decide not to win by discard although it was possible, then you cannot win by discard until your next tile draw.
+  - Temporary penalty: If you decide not to win by discard although it was possible, then you cannot win by discard until your next tile draw.
   - Ready penalty: After you declare ready, if you decide not to win by discard although it was possible, then you cannot win by discard at all.
   - Discarded tile penalty: When you are one tile away from winning, if the list of tiles you are waiting for includes a tile you have discarded in the past, then you cannot win by discard at all.
 - There are 2 situations when the game is aborted without a winner.
@@ -77,7 +77,8 @@ All initial requirements stated in the proposal are fully fulfilled.
 
 6. The bots will operate on a set of rules that takes the given situation into account. Specifics of the playing algorithm is not determined at this point; how advanced the algorithm is will depend heavily on what is possible given the limitation of knowledge and time, which I hope will be revealed as the project moves forward.
 
-    - Fully fulfilled: the bots consider both the tiles in their possession and all the disclosed tiles when making decisions. They discard tiles that either lets them move closer to winning hands or are not used in forming any *Bodies*. They call for quads and triplets only if such actions help the hand-building progress. The two bots combined wins against the project owner in about 1 out of 3 games. (The project owner is currently ranked at *Adept 1* in *Majhong Soul*.)
+    - Fully fulfilled: the bots consider both the tiles in their possession and all the disclosed tiles when making decisions. They discard tiles that either lets them move closer to winning hands or are not used in forming any *Bodies*. They call for quads and triplets only if such actions help the hand-building progress.
+    - The project owner has played 15 games against the latest version bots, and the results are as follows: 1 player win, 10 bot wins, and 4 draws. (The project owner is currently ranked at *Adept 1* in *Majhong Soul*.)
 
 7. The round, and subsequently the program, terminates when there is a winner, when special rules are triggered, or when the tile stack runs out.
 

@@ -29,9 +29,17 @@ type Player (playerIsUser, hands: WinningHands) =
           if (out0) then (a + r * 26 * out1) else (a + r * 2 * out1)
         ) elif (List.length (hands.CanDeclareReady newHand) > 0) then (a + r) else (a)
     ) 0 [ 0..26 ]
+  
+  let getLessRiskyDiscard arg1 arg3 list discTiles =
+    List.fold (
+      fun (cnt, outList) i ->
+        let tmp = List.item (if (i = 13) then (arg3 / 4) else ((List.item i arg1) / 4)) discTiles
+        if   (tmp > cnt) then (tmp, [i])
+        elif (tmp = cnt) then (cnt, List.append outList [i]) else (cnt, outList)
+    ) (0, []) list
 
   /// Bot's tile discard strategy for conventional hands
-  let nextDiscard statusInfo =
+  let nextDiscard statusInfo discTiles =
     let (handInfo, bonusTiles, disclosedTiles) = statusInfo
     let (arg0, arg1, arg2, arg3, _, arg5, arg6, arg7, arg8, arg9) = handInfo
     let arg13 =
@@ -54,11 +62,13 @@ type Player (playerIsUser, hands: WinningHands) =
             )
           )
       ) arg13
-    List.fold (
-      fun (outV, outList) (i, v) ->
-        if   (v < outV) then (v, [i])
-        elif (v = outV) then (outV, List.append outList [i]) else (outV, outList)
-    ) (400, []) appeal
+    let (_, leastAppeals) =
+      List.fold (
+        fun (outV, outList) (i, v) ->
+          if   (v < outV) then (v, [i])
+          elif (v = outV) then (outV, List.append outList [i]) else (outV, outList)
+      ) (512, []) appeal
+    getLessRiskyDiscard arg1 arg3 leastAppeals discTiles
   
   let checkStrategyAbort statusInfo =
     let (handInfo, bonusTiles, disclosedTiles) = statusInfo
@@ -69,9 +79,9 @@ type Player (playerIsUser, hands: WinningHands) =
     ) terminalsAndHonors
   
   /// Bot's tile discard strategy for Thirteen Orphans limit hand
-  let thirteenOrphanStrategy statusInfo =
+  let thirteenOrphanStrategy statusInfo discTiles =
     if (checkStrategyAbort statusInfo) then (
-      target13Orphans <- false; nextDiscard statusInfo
+      target13Orphans <- false; nextDiscard statusInfo discTiles
     ) else (
       let (handInfo, bonusTiles, disclosedTiles) = statusInfo
       let (_, arg1, _, arg3, _, _, _, _, _, _) = handInfo
@@ -90,11 +100,11 @@ type Player (playerIsUser, hands: WinningHands) =
           elif (v = outV) then (outV, List.append outList [i]) else (outV, outList)
         ) (1, []) appeal
       if (List.exists (fun x -> if (x = 13) then (arg3 / 4 = 23) else ((List.item x arg1) / 4 = 23)) out1)
-        then (out0, [17]) else (out0, out1)
+        then (out0, [17]) else (getLessRiskyDiscard arg1 arg3 out1 discTiles)
     )
 
   /// Bot's strategy for determining the limit hand
-  let exploreQuadOpt quadOption statusInfo =
+  let exploreQuadOpt quadOption statusInfo discTiles =
     let temp =
       List.tryFind (
         fun (b, t, _) -> (b) || ((not b) && (List.contains t [ 0; 1; 20; 21; 22; 23; 24; 25; 26 ]))
@@ -104,7 +114,7 @@ type Player (playerIsUser, hands: WinningHands) =
     | None           ->
       let (handInfo, bonusTiles, disclosedTiles) = statusInfo
       let (arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) = handInfo
-      let (expected1, _) = nextDiscard statusInfo
+      let (expected1, _) = nextDiscard statusInfo discTiles
       let expected2 =
         List.map (
           fun (b, t, _) ->
@@ -134,7 +144,8 @@ type Player (playerIsUser, hands: WinningHands) =
   member __.RemovePenalty () =
     if (hasTempPenalty < 2) then (hasTempPenalty <- 0;)
 
-  member __.NextMove valid isWinning isReady canReady quadOption has4zTile canAbort statusInfo =
+  member __.NextMove valid argIn statusInfo discTiles =
+    let (isWinning, isReady, canReady, quadOption, has4zTile, canAbort) = argIn
     if (
       (isReady) && (not isWinning) && (List.length quadOption = 0) && (not has4zTile) && (canAbort < 9)
     ) then (
@@ -187,7 +198,7 @@ type Player (playerIsUser, hands: WinningHands) =
           if   (canAbort = 9) then (18)
           elif (
             (canAbort < 9) && (canAbort > -10)
-              && (not target13Orphans) && (exploreQuadOpt quadOption statusInfo)
+              && (not target13Orphans) && (exploreQuadOpt quadOption statusInfo discTiles)
           ) then (16)
           elif (
             (canAbort < 9) && (canAbort > -10) && (not target13Orphans) && (has4zTile)
@@ -195,7 +206,8 @@ type Player (playerIsUser, hands: WinningHands) =
             if ((not target13Orphans) && ((canAbort > 9) || (canAbort < -9)))
               then (target13Orphans <- true)
             let (out0, out1) =
-              if (target13Orphans) then (thirteenOrphanStrategy statusInfo) else (nextDiscard statusInfo)
+              if (target13Orphans) then (thirteenOrphanStrategy statusInfo discTiles)
+                else (nextDiscard statusInfo discTiles)
             List.item (rand.Next (0, List.length out1)) out1   // printfn "%d %A" out0 out1
           )
       )
@@ -296,7 +308,7 @@ type Player (playerIsUser, hands: WinningHands) =
       )
     )
   
-  member __.DoTri actionPlayer statusInfo =
+  member __.DoTri actionPlayer statusInfo discTiles =
     if (playerIsUser) then (
       let rec getSelection () =
         printfn "Enter [1] to make an called triplet, or enter [2] to skip:"
@@ -321,11 +333,12 @@ type Player (playerIsUser, hands: WinningHands) =
         let (expected2, _) =
           nextDiscard
             ((arg0, narg1, narg2, -1, false, arg5, arg6, arg7, arg8, arg9), bonusTiles, disclosedTiles)
+            discTiles
         (- expected2 > expected1)
       )
     )
   
-  member __.DoDiscard newHand statusInfo =
+  member __.DoDiscard newHand statusInfo discTiles =
     let valid = Array.length newHand - 1
     if (playerIsUser) then (
       let rec getSelection () =
@@ -351,6 +364,6 @@ type Player (playerIsUser, hands: WinningHands) =
         | _ -> printfn "\n[*] Invalid option.\n"; getSelection ()
       getSelection ()
     ) else (
-      let (out0, out1) = nextDiscard statusInfo
+      let (out0, out1) = nextDiscard statusInfo discTiles
       List.item (rand.Next (0, List.length out1)) out1   // printfn "%d %A" out0 out1
     )
