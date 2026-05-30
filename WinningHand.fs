@@ -410,7 +410,7 @@ type WinningHands () =
             (List.forall (fun (t, _) -> List.contains t bambooTiles) meldList) && (
               List.forall (
                 fun (b, t, n) ->
-                  ((b) && (List.contains t [ 2..8 ]) && (n = 3))
+                  ((b) && (List.contains t [ 11..17 ]) && (n = 3))
                     || ((not b) && (List.contains t bambooTiles) && ((n = 2) || (n = 3)))
               ) tileBuild
             )
@@ -494,8 +494,8 @@ type WinningHands () =
             let sequences =
               List.map (fun (_, t, _) -> t) (List.filter (fun (b, _, n) -> (b) && (n = 3)) tileBuild)
             (List.length sequences = 4)
-              && (List.item 1 sequences = List.item 2 sequences)
-              && (List.item 3 sequences = List.item 4 sequences)
+              && (List.item 0 sequences = List.item 1 sequences)
+              && (List.item 2 sequences = List.item 3 sequences)
           )
       ),
       0, 3, [ "Single Identical Sequences" ]

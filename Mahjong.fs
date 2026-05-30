@@ -257,7 +257,9 @@ type Mahjong (userPos) =
         ) else ( [ ] )
       let canPutAside4zTile =
         (not arg9) && ((List.exists (fun x -> x / 4 = 23) arg1) || (arg3 / 4 = 23))
-      let canAbort = if (isFirstRound) then (status.AbortByNineTerminalsAndHonors turn) else (-1)
+      let canAbort =
+        if (isFirstRound) then (status.AbortByNineTerminalsAndHonors turn)
+          else (- (status.AbortByNineTerminalsAndHonors turn))
       if (players[turn - 1].IsUser ()) then (
         status.Display turn (Array.toList (Array.map (fun (x: Player) -> x.IsReady ()) players))
         if (isWinning) then (printfn "Winning possible: Enter [15] to claim victory")

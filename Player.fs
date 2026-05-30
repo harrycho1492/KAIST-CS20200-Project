@@ -26,8 +26,8 @@ type Player (playerIsUser, hands: WinningHands) =
         let newHand = (arg0, arg1, arg2, b, true, arg5, arg6, arg7, arg8, arg9)
         if (hands.IsWinning newHand) then (
           let (out0, out1, _) = hands.GetPoints newHand bonusTiles (0, 0)
-          if (out0) then (a + r * 130 * out1) else (a + r * 10 * out1)
-        ) elif (List.length (hands.CanDeclareReady newHand) > 0) then (a + r * 5) else (a)
+          if (out0) then (a + r * 26 * out1) else (a + r * 2 * out1)
+        ) elif (List.length (hands.CanDeclareReady newHand) > 0) then (a + r) else (a)
     ) 0 [ 0..26 ]
 
   /// Bot's tile discard strategy for conventional hands
@@ -185,10 +185,15 @@ type Player (playerIsUser, hands: WinningHands) =
         | (false, true)  -> 15
         | (false, false) ->
           if   (canAbort = 9) then (18)
-          elif ((canAbort < 9) && (not target13Orphans) && (exploreQuadOpt quadOption statusInfo))
-            then (16)
-          elif ((canAbort < 9) && (not target13Orphans) && (has4zTile)) then (17) else (
-            if (canAbort > 9) then (target13Orphans <- true)
+          elif (
+            (canAbort < 9) && (canAbort > -10)
+              && (not target13Orphans) && (exploreQuadOpt quadOption statusInfo)
+          ) then (16)
+          elif (
+            (canAbort < 9) && (canAbort > -10) && (not target13Orphans) && (has4zTile)
+          ) then (17) else (
+            if ((not target13Orphans) && ((canAbort > 9) || (canAbort < -9)))
+              then (target13Orphans <- true)
             let (out0, out1) =
               if (target13Orphans) then (thirteenOrphanStrategy statusInfo) else (nextDiscard statusInfo)
             List.item (rand.Next (0, List.length out1)) out1   // printfn "%d %A" out0 out1
@@ -276,16 +281,17 @@ type Player (playerIsUser, hands: WinningHands) =
         | _ -> printfn "\n[*] Invalid option.\n"; getSelection ()
       getSelection ()
     ) else (
-      if ((target13Orphans) && (not (checkStrategyAbort statusInfo))) then (false) else (
+      let (handInfo, bonusTiles, disclosedTiles) = statusInfo
+      let (arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) = handInfo
+      if (
+        ((target13Orphans) && (not (checkStrategyAbort statusInfo)))
+          || (List.forall (fun (_, y) -> y = 20 + arg0) arg2)
+      ) then (false) else (
         if (target13Orphans) then (target13Orphans <- false)
-        let (handInfo, bonusTiles, disclosedTiles) = statusInfo
-        let (arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) = handInfo
         let narg1 = List.filter (fun x -> not (x / 4 = arg3 / 4)) arg1
         let narg2 = List.append arg2 [ (arg3 / 4, 27 + actionPlayer * 3 + arg0) ]
-        let expected1 =
-          getAppeal arg0  arg1  arg2 arg5 arg6 arg7 arg8 arg9 bonusTiles disclosedTiles
-        let expected2 =
-          getAppeal arg0 narg1 narg2 arg5 arg6 arg7 arg8 arg9 bonusTiles disclosedTiles
+        let expected1 = getAppeal arg0  arg1  arg2 arg5 arg6 arg7 arg8 arg9 bonusTiles disclosedTiles
+        let expected2 = getAppeal arg0 narg1 narg2 arg5 arg6 arg7 arg8 arg9 bonusTiles disclosedTiles
         (expected2 > expected1)
       )
     )
