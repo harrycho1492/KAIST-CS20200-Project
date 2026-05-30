@@ -77,8 +77,8 @@ All initial requirements stated in the proposal are fully fulfilled.
 
 6. The bots will operate on a set of rules that takes the given situation into account. Specifics of the playing algorithm is not determined at this point; how advanced the algorithm is will depend heavily on what is possible given the limitation of knowledge and time, which I hope will be revealed as the project moves forward.
 
-    - Fully fulfilled: the bots consider both the tiles in their possession and all the disclosed tiles when making decisions. They discard tiles that either lets them move closer to winning hands or are not used in forming any *Bodies*. They call for quads and triplets only if such actions help the hand-building progress.
-    - The project owner has played 15 games against the latest version bots, and the results are as follows: 1 player win, 10 bot wins, and 4 draws. (The project owner is currently ranked at *Adept 1* in *Majhong Soul*.)
+    - Fully fulfilled: the bots consider both the tiles in their possession and all the disclosed tiles when making decisions. They discard tiles that either lets them move closer to winning hands or are not used in forming any *Bodies*. They try to prevent winning by discard by discarding tiles of the kind that were already discarded by other players. They call for quads and triplets only if such actions help the hand-building progress.
+    - The project owner has played 24 games against the latest version bots, and the results are as follows: 4 player wins, 15 bot wins, and 5 draws. (The project owner is currently ranked at *Adept 1* in *Majhong Soul*.)
 
 7. The round, and subsequently the program, terminates when there is a winner, when special rules are triggered, or when the tile stack runs out.
 

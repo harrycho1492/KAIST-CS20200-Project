@@ -312,7 +312,9 @@ type Mahjong (userPos) =
           )
         | x when (x > 1) ->
           let readySelection =
-            players[turn - 1].SelectReadyOption readyOpt (status.GetDisclosedTiles turn)
+            players[turn - 1].SelectReadyOption readyOpt
+              (handInfo, (status.BonusTiles ()), (status.GetDisclosedTiles turn))
+              (status.GetDiscardedTiles turn)
           commonAction (
             if (readySelection = 13) then (status.DiscardTile arg3 turn)
               else (status.DiscardTile arg1[readySelection] turn)

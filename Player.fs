@@ -213,7 +213,7 @@ type Player (playerIsUser, hands: WinningHands) =
       )
     )
   
-  member __.SelectReadyOption readyOpt disclosedTiles =
+  member __.SelectReadyOption readyOpt statusInfo discTiles =
     if (playerIsUser) then (
       let readyIdx = List.map fst readyOpt
       let rec getSelection () =
@@ -240,13 +240,16 @@ type Player (playerIsUser, hands: WinningHands) =
         | _ -> printfn "\n[*] Invalid option.\n"; getSelection ()
       getSelection ()
     ) else (
+      let (handInfo, bonusTiles, disclosedTiles) = statusInfo
+      let (_, arg1, _, arg3, _, _, _, _, _, _) = handInfo
       let (_, bestChoices) =
         List.fold (
           fun (n, ol) (x, l) ->
             let y = List.fold (fun cnt z -> cnt + (4 - (List.item x disclosedTiles))) 0 l
             if (y > n) then (y, [x]) elif (y = n) then (n, List.append ol [x]) else (n, ol)
         ) (0, []) readyOpt
-      List.item (rand.Next (0, List.length bestChoices)) bestChoices
+      let (_, out1) = getLessRiskyDiscard arg1 arg3 bestChoices discTiles
+      List.item (rand.Next (0, List.length out1)) out1
     )
     
   member __.SelectQuadOption quadOption =
