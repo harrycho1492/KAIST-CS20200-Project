@@ -43,6 +43,7 @@ This project aims to implement a single round of 3-person Japanese Mahjong in co
   - Abort by nine different terminal and honor tiles: Possible to call for this abort when you have 9 or more kinds of terminal and honor tiles (`1m`, `9m`, `1p`, `9p`, `1s`, `9s` and `1z` through `7z`) in your hand in your first draw. The abort cannot be called when any player before you has made a quad, called for a triplet, or has put aside a North (`4z`) tile.
 - When a player has won, their score is calculated by adding the points of all winning hands satisfied, plus the points from red bonus, North (`4z`) tile bonus, and bonus tiles. The original Japanese Mahjong employs a complex scoring rule (refer to [English Wikipedia](https://en.wikipedia.org/wiki/Japanese_mahjong_scoring_rules) or [NamuWiki](https://namu.wiki/w/%EB%A6%AC%EC%B9%98%EB%A7%88%EC%9E%91/%EC%A0%90%EC%88%98) for details) that requires the computation of both *Han* and *Fu* values; in this project, the system is greatly simplified and counts 1 *Han* as 1 point. *Fu* is completely ignored.
 - When the standard tile stack runs out without any player being able to win, the game terminates without a winner. The original Japanese Mahjong considers a concept called *Tenpai* in this situation to give bonus to players who were close to victory, but this is omitted from this project since only single rounds instead of a full game is implemented.
+
 If the explanation here is insufficient, please refer to other online documentation of *Mahjong Soul* or Japanese Mahjong in general.
 
 ### Running the Project
@@ -55,19 +56,32 @@ Disclaimer: although extensive effort was made to test the project, there may be
 
 All initial requirements stated in the proposal are fully fulfilled.
 1. The game will be implemented based on the rules of 3-person Japanese Mahjong, specifically the version used in Mahjong Soul online game platform. The project will aim to replicate as many parts of the game as possible, except the scoring system which will be simplified and made appropriate for playing single rounds.
-  - Fully fulfilled: see above.
+
+    - Fully fulfilled: see above.
+
 2. At the beginning of the round, the user can choose if they want to play as the dealer – “East”, the second – “South”, or the third – “West”.
-  - Fully fulfilled: enter `1`, `2` or `3` to play as "East", "South" or "West" respectively.
+
+    - Fully fulfilled: enter `1`, `2` or `3` to play as "East", "South" or "West" respectively.
+
 3. All required information for the user – tiles in their hand, discarded and revealed tiles, remaining stack size, and more – will be displayed in the terminal as text. Tiles – which originally are displayed with drawings – will be displayed with their text notation used in Japan.
-  - Fully fulfilled: see above for the text notation, and run the actual project to see how the information is displayed.
+
+    - Fully fulfilled: see above for the text notation, and run the actual project to see how the information is displayed.
+
 4. The user and two bots will take turns making moves.
-  - Fully fulfilled.
+
+    - Fully fulfilled.
+
 5. The user will make their move – discarding, claiming, or other special moves as required by special situations – by inputting a character.
-  - Fully fulfilled: the user must enter a decimal number to interact with the game.
+
+    - Fully fulfilled: the user must enter a decimal number to interact with the game.
+
 6. The bots will operate on a set of rules that takes the given situation into account. Specifics of the playing algorithm is not determined at this point; how advanced the algorithm is will depend heavily on what is possible given the limitation of knowledge and time, which I hope will be revealed as the project moves forward.
-  - Fully fulfilled: the bots consider both the tiles in their possession and all the disclosed tiles when making decisions. They discard tiles that either lets them move closer to winning hands or are not used in forming any *Bodies*. They call for quads and triplets only if such actions help the hand-building progress. The two bots combined wins against the project owner in about 1 out of 3 games. (The project owner is currently ranked at *Adept 1* in *Majhong Soul*.)
+
+    - Fully fulfilled: the bots consider both the tiles in their possession and all the disclosed tiles when making decisions. They discard tiles that either lets them move closer to winning hands or are not used in forming any *Bodies*. They call for quads and triplets only if such actions help the hand-building progress. The two bots combined wins against the project owner in about 1 out of 3 games. (The project owner is currently ranked at *Adept 1* in *Majhong Soul*.)
+
 7. The round, and subsequently the program, terminates when there is a winner, when special rules are triggered, or when the tile stack runs out.
-  - Fully fulfilled: see above.
+
+    - Fully fulfilled: see above.
 
 ### Usage of LLM
 
