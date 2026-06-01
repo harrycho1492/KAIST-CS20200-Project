@@ -9,7 +9,7 @@ This project aims to implement a single round of 3-person Japanese Mahjong in co
 
 Enter `dotnet run` to run the project. You will be greeted with the main menu, where you can select your position and initiate the game. All interactions with the game is done by entering a decimal number.
 
-Disclaimer: although extensive effort was made to test the project, there may be specific untested circumstances with very low chances of occurence where the game does not behave as intended or where the program errorneously terminates. I apologize for the inconvenience in advance in case it happens.
+Disclaimer: There was extensive effort made to check the functions of the project in various situations. 2,700 automated rounds were completed without any errorneous behavior. But, this does not guarantee the nonexistence of specific untested circumstances with very low chances of occurence where the game does not behave as intended or where the program errorneously terminates. I apologize for the inconvenience in advance in case it happens.
 
 ### Rules
 
@@ -87,7 +87,7 @@ All initial requirements stated in the proposal are fully fulfilled.
 6. The bots will operate on a set of rules that takes the given situation into account. Specifics of the playing algorithm is not determined at this point; how advanced the algorithm is will depend heavily on what is possible given the limitation of knowledge and time, which I hope will be revealed as the project moves forward.
 
     - Fully fulfilled: the bots consider both the tiles in their possession and all the disclosed tiles when making decisions. They discard tiles that either lets them move closer to winning hands or are not used in forming any *Bodies*. They try to prevent winning by discard by discarding tiles of the kind that were already discarded by other players. They call for quads and triplets only if such actions help the hand-building progress.
-    - The project owner has played 45 rounds against the latest version bots, and the results are as follows: 11 player wins, 25 bot wins, 8 draws and 1 abort by nine different terminal and honor tiles. (The project owner is currently ranked at *Adept 1* in *Majhong Soul*.)
+    - The project owner has played 48 rounds against the latest version bots, and the results are as follows: 13 player wins, 26 bot wins, 8 draws and 1 abort by nine different terminal and honor tiles. (The project owner is currently ranked at *Adept 1* in *Majhong Soul*.)
 
 7. The round, and subsequently the program, terminates when there is a winner, when special rules are triggered, or when the tile stack runs out.
 
@@ -95,4 +95,4 @@ All initial requirements stated in the proposal are fully fulfilled.
 
 ### Usage of LLM
 
-There was zero usage of LLM in this project. All 2000+ lines of code were written manually, while referencing [official F# documentation](https://learn.microsoft.com/en-gb/dotnet/fsharp/), [Fsharp.Core API Reference](https://fsharp.github.io/fsharp-core-docs/reference/) and files provided during the CS.20200 lecture.
+There was zero usage of LLM in this project. All 2,280 lines of code and this `README.md` file were written manually, while referencing [official F# documentation](https://learn.microsoft.com/en-gb/dotnet/fsharp/), [Fsharp.Core API Reference](https://fsharp.github.io/fsharp-core-docs/reference/), files provided during the CS.20200 lecture, aforementioned Japanese Mahjong documentations and the original *Mahjong Soul* game itself.
