@@ -164,8 +164,7 @@ type Mahjong (userPos) =
           let countTile handInfo =
             let (_, arg1, _, _, _, _, _, _, _, _) = handInfo
             List.fold (fun x y -> if (y / 4 = currTile / 4) then (x + 1) else (x)) 0 arg1
-          let nr1 = (players[np1 - 1].IsReady () = 0)
-          let nr2 = (players[np2 - 1].IsReady () = 0)
+          let (nr1, nr2) = (players[np1 - 1].IsReady () = 0, players[np2 - 1].IsReady () = 0)
           let quad1 =
             if (
               (not (win1 || win2)) && (not keepTurn) && (nr1) && (countTile handInfo1 = 3)
@@ -225,16 +224,14 @@ type Mahjong (userPos) =
       // printfn "Player %d has drawn: %s\n" turn drawnTile   // For debugging
       if (players[turn - 1].HasTempPenalty ()) then (players[turn - 1].RemovePenalty ();)
       let (arg1x, arg2, arg3) = status.ConstructHand turn
-      let arg1 = Array.toList arg1x
-      let arg9 = not (status.CanDrawTile ())
+      let (arg1, arg9) = (Array.toList arg1x, not (status.CanDrawTile ()))
       let handInfo =
         (
           turn, arg1, arg2, arg3, true, isFirstRound, wasQuad,
           players[turn - 1].IsReady (), players[turn - 1].InOneTurn (), arg9
         )
       let isWinning = hands.IsWinning handInfo
-      let isReady   = players[turn - 1].IsReady () > 0
-      let readyOpt  = hands.CanDeclareReady handInfo
+      let (isReady, readyOpt) = (players[turn - 1].IsReady () > 0, hands.CanDeclareReady handInfo)
       let canReady  =
         (not isReady) && (List.length readyOpt > 0) && (List.forall (fun (_, y) -> y = 20 + turn) arg2)
       let quadOption =
@@ -252,8 +249,11 @@ type Mahjong (userPos) =
                       List.append arg2 [ (y, 20 + turn) ], -1, true, isFirstRound,
                       wasQuad, players[turn - 1].IsReady (), false, arg9
                     )
-                  List.fold2 (fun x y z -> if (y = z) then (x) else (false)) true
-                    (hands.IsOneAway handInfo) (hands.IsOneAway newHand)
+                  let (wait1, wait2) = (hands.IsOneAway handInfo, hands.IsOneAway newHand)
+                  (List.length wait1 = List.length wait2) && (
+                    List.forall (fun x -> List.item x wait1 = List.item x wait2)
+                      [ 0..(List.length wait1 - 1) ]
+                  )
                 ))
             ) temp
           ) else (temp)
@@ -373,7 +373,8 @@ type Mahjong (userPos) =
     printfn "Third  - West  : %s\n" (printPlayer 3)
     status.Init ()
     mainLoop false false 1
-    // status.Display 0 (Array.toList (Array.map (fun (x: Player) -> x.IsReady ()) players)) // for debugging
+    if (Array.forall (fun (x: Player) -> not (x.IsUser ())) players)
+      then (status.Display 0 (Array.toList (Array.map (fun (x: Player) -> x.IsReady ()) players)))
     ()
   
   /// Debug mode

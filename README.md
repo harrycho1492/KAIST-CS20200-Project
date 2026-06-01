@@ -87,7 +87,7 @@ All initial requirements stated in the proposal are fully fulfilled.
 6. The bots will operate on a set of rules that takes the given situation into account. Specifics of the playing algorithm is not determined at this point; how advanced the algorithm is will depend heavily on what is possible given the limitation of knowledge and time, which I hope will be revealed as the project moves forward.
 
     - Fully fulfilled: the bots consider both the tiles in their possession and all the disclosed tiles when making decisions. They discard tiles that either lets them move closer to winning hands or are not used in forming any *Bodies*. They try to prevent winning by discard by discarding tiles of the kind that were already discarded by other players. They call for quads and triplets only if such actions help the hand-building progress.
-    - The project owner has played 36 games against the latest version bots, and the results are as follows: 7 player wins, 22 bot wins, 6 draws and 1 abort by nine different terminal and honor tiles. (The project owner is currently ranked at *Adept 1* in *Majhong Soul*.)
+    - The project owner has played 45 rounds against the latest version bots, and the results are as follows: 11 player wins, 25 bot wins, 8 draws and 1 abort by nine different terminal and honor tiles. (The project owner is currently ranked at *Adept 1* in *Majhong Soul*.)
 
 7. The round, and subsequently the program, terminates when there is a winner, when special rules are triggered, or when the tile stack runs out.
 
